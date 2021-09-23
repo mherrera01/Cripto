@@ -18,7 +18,7 @@ createDirs:
 
 $(PROGRAM): $(OBJECTS)
 	@echo Compiling...
-	@$(CC) $(CFLAGS) -o$@ $(OBJECTS)
+	@$(CC) $(CFLAGS) -o$@ $(OBJECTS) -lgmp -L.
 	@echo Compilation completed
 
 $(OBJDIR)/main.o: src/main.c
