@@ -1,6 +1,6 @@
 # Macros definition
 CC = gcc
-CFLAGS = -g -Wall -ansi -pedantic
+CFLAGS = -g -Wall -pedantic
 
 OBJDIR = obj
 OBJECTS = $(OBJDIR)/main.o
