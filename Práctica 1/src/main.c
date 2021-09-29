@@ -6,6 +6,7 @@ mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b){
     if(mpz_cmp_si(*b, 0) == 0) return a;
     if(mpz_cmp_si(*b, 1) == 0) return r;
     mpz_mod(*r, *a, *b);
+    //gmp_printf("mod(%Zd,%Zd)=%Zd\n", a, b, r);
     return calculate_mcd(a, b, r);
 
     //mpz_mod (mpz_t r, const mpz_t n, const mpz_t d)
@@ -30,6 +31,10 @@ int main (int argc,char *argv[]) {
     mpz_set_str (b,sb,10);
 
     gmp_printf("El mcd de %s y %s es %Zd\n", sa, sb, calculate_mcd(&r, &a, &b));
+
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(r);
 
     return 0;
 }
