@@ -5,8 +5,8 @@
 #include "euclides.h"
 
 char affine_char(char origin, int a, int b, int n){
-    printf("%d*%d+%d mod %d = %d\n", (origin-65), a, b, n, (((origin-65)*a-b)%n));
-    return (((origin-65)*a-b)%n)+65;
+    printf("%d*%d+%d mod %d = %d\n", (origin-65), a, b, n, (((origin-65)*a+b)%n));
+    return (((origin-65)*a+b)%n)+65;
 }
 
 //get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n);
@@ -14,10 +14,20 @@ void affine_cypher(char* message, mpz_t* inv, mpz_t* a, mpz_t* b, mpz_t* n){
     int i;
     long la, lb, ln;
 
+    // Convertimos la a y la b a positivo si estos están en negativo
+    if (mpz_cmp_si(*a, 0) == -1){
+        mpz_mod(*a, *a, *n);
+    }
+    
+    if (mpz_cmp_si(*b, 0) == -1){
+        mpz_mod(*b, *b, *n);
+    }
+
     get_modular_inverse(inv, a, n);
 
     if(mpz_cmp_si(*inv, 0) == 0){
         gmp_printf("%Zd no tiene inverso multiplicativo.\n", a);
+        return;
     }
 
     la =  mpz_get_si(*a);
@@ -39,7 +49,7 @@ int main (int argc,char *argv[]) {
     mpz_init(b);
     mpz_init(n);
     mpz_init(inv);
-    mpz_set_str(n, "27", 10);
+    mpz_set_str(n, "26", 10);
 
     
     printf("Introduce un valor para a:\n");
