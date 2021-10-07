@@ -1,10 +1,11 @@
 # Macros definition
 CC = gcc
-CFLAGS = -g -Wall -pedantic
+CFLAGS = -g -Wall
+#-pedantic
 
 OBJDIR = obj
-OBJECTS = $(OBJDIR)/main.o
-PROGRAM = main
+OBJECTS = $(OBJDIR)/afin.o $(OBJDIR)/euclides.o
+PROGRAM = afin
 
 # We specify that the files are not related with the rules, so that the
 # makefile will not search for a file called as a rule
@@ -21,7 +22,10 @@ $(PROGRAM): $(OBJECTS)
 	@$(CC) $(CFLAGS) -o$@ $(OBJECTS) -lgmp -L.
 	@echo Compilation completed
 
-$(OBJDIR)/main.o: src/main.c
+$(OBJDIR)/afin.o: src/afin.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/euclides.o: src/euclides.c src/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

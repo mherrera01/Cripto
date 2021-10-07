@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <gmp.h>
+#include "euclides.h"
 
 mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b){
     if(mpz_cmp_si(*b, 0) == 0) return a;
@@ -61,7 +61,7 @@ void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n){
 
     if(mpz_cmp_si(na, 1) != 0){
         mpz_set_str(*r, "0", 10);
-        printf("No hay inverso multiplicativo\n");
+        //printf("No hay inverso multiplicativo\n");
         return;
     }
     //p[i+1] = (p[i-1] - p[i]*c[1])%m
@@ -80,37 +80,4 @@ void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n){
     free(p);
 
     return;
-}
-
-int main (int argc,char *argv[]) {
-    mpz_t a, b, r;
-    char sa[100], sb[100];
-
-    mpz_init(a);
-    mpz_init(b);
-    mpz_init(r);
-    mpz_set_str(r, "1", 10);
-
-    
-    printf("Introduce un valor para a:\n");
-    scanf("%s", sa);
-    mpz_set_str (a,sa,10);
-    printf("Introduce un valor para b:\n");
-    scanf("%s", sb);
-    mpz_set_str (b,sb,10);
-    
-    /*
-    mpz_set_str (a,"26",10);
-    mpz_set_str (b,"15",10);
-    */
-
-    get_modular_inverse(&r, &a, &b);
-
-    gmp_printf("El inverso multiplicativo de %s y %s es %Zd\n", sa, sb, r);
-
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(r);
-
-    return 0;
 }
