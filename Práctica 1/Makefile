@@ -1,7 +1,6 @@
 # Macros definition
 CC = gcc
-CFLAGS = -g -Wall
-#-pedantic
+CFLAGS = -g -Wall -pedantic
 
 OBJDIR = obj
 OBJECTS = $(OBJDIR)/afin.o $(OBJDIR)/euclides.o
@@ -34,4 +33,4 @@ clean:
 
 runv:
 	@echo Debugging with valgrind...
-	@valgrind --leak-check=full ./$(PROGRAM)
+	@valgrind --leak-check=full ./$(PROGRAM) -C -m 26 -a 11 -b -3

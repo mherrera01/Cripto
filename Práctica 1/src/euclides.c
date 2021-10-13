@@ -2,19 +2,19 @@
 #include <stdlib.h>
 #include "euclides.h"
 
-mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b){
-    if(mpz_cmp_si(*b, 0) == 0) return a;
-    if(mpz_cmp_si(*b, 1) == 0) return r;
-    mpz_mod(*r, *a, *b);
-    //gmp_printf("mod(%Zd,%Zd)=%Zd\n", a, b, r);
-    return calculate_mcd(a, b, r);
+mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
+    // La función mpz_cmp_si devuelve 0 en caso de que b sea igual al segundo argumento
+    if (mpz_cmp_si(*b, 0) == 0) return a;
+    if (mpz_cmp_si(*b, 1) == 0) return r;
 
-    //mpz_mod (mpz_t r, const mpz_t n, const mpz_t d)
-    //mpz_cmp_si (const mpz_t op1, signed long int op2)
-    //mpz_cmp (const mpz_t op1, const mpz_t op2)
+    // Obtenemos el módulo de la división de a y b
+    mpz_mod(*r, *a, *b);
+
+    // Función recursiva
+    return calculate_mcd(a, b, r);
 }
 
-void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n){
+void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n) {
     mpz_t ma, na, x, c[3];
     mpz_t *p = NULL;
     int i, p_size;
