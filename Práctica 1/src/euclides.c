@@ -3,6 +3,9 @@
 #include "euclides.h"
 
 mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
+    // Control de errores
+    if (r == NULL || a == NULL || b == NULL) return NULL;
+
     // La función mpz_cmp_si devuelve 0 en caso de que b sea igual al segundo argumento
     if (mpz_cmp_si(*b, 0) == 0) return a;
     if (mpz_cmp_si(*b, 1) == 0) return r;
@@ -17,65 +20,79 @@ mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
 void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n) {
     mpz_t ma, na, x, c[3];
     mpz_t *p = NULL;
-    int i, p_size;
+    int i, p_size = 3;
 
+    // Control de errores
+    if (r == NULL || m == NULL || n == NULL) return;
+
+    // Inicializamos memoria para los resultados de p0, p1 y p2
+    p = (mpz_t*) malloc (p_size * sizeof(mpz_t));
+    if (p == NULL) return;
+    for (i=0; i<p_size; i++) mpz_init(p[i]);
+
+    // Inicializamos las variables
     mpz_init(ma);
     mpz_init(na);
-
-    for (i=0; i<3; i++) mpz_init(c[i]);
     mpz_init(x);
+    for (i=0; i<3; i++) mpz_init(c[i]);
 
-    p_size = 50;
-    p = (mpz_t*) malloc(p_size*sizeof(mpz_t));
-
-    mpz_set (ma, *m);
-    mpz_set (na, *n);
+    // Asignamos los valores iniciales
+    mpz_set(ma, *m);
+    mpz_set(na, *n);
 
     mpz_set_str(x, "1", 10);
-
-    for(i=0; i<p_size; i++){
-        mpz_init(p[i]);
-    }
-
     mpz_set_str(p[1], "1", 10);
 
-    for(i=0; mpz_cmp_si(x, 0) != 0; i++){
+    // Seguimos mientras que el resto sea diferente a 0
+    for (i=0; mpz_cmp_si(x, 0) != 0; i++) {
+        // Obtenemos el resto de la división
         mpz_mod(x, ma, na);
+
+        // Actualizamos las variables con los cocientes de las tres operaciones anteriores
         mpz_set(c[2], c[1]);
         mpz_set(c[1], c[0]);
+
+        // Obtenemos el cociente de la división
         mpz_fdiv_q (c[0], ma, na);
-        //gmp_printf("%Zd = %Zd(%Zd) + %Zd    \t", ma, c[0], na, x);
+
+        // Asignamos el dividendo y divisor de la siguiente operación
         mpz_set(ma, na);
-        if(mpz_cmp_si(x, 0) != 0) mpz_set(na, x);
-        if(i>1){
+        if (mpz_cmp_si(x, 0) != 0) mpz_set(na, x);
+
+        // Actualizamos los resultados de p para obtener el inverso multiplicativo
+        if (i>1) {
             mpz_mul(p[i], p[i-1], c[2]);
             mpz_sub(p[i], p[i-2], p[i]);
             mpz_mod(p[i], p[i], *m);
+
+            // Añadimos memoria para la siguiente p
+            p_size++;
+            p = (mpz_t*) realloc (p, p_size * sizeof(mpz_t));
+            mpz_init(p[p_size-1]);
         }
-        /*
-        p = realloc(p, ++p_size);
-        mpz_init(p[p_size-1]);
-        */
-        //gmp_printf("p = %Zd - %Zd(%Zd) mod %Zd = %Zd p_size=%d\n",p[i-2], p[i-1], c[2], m, p[i], p_size);
     }
 
-    if(mpz_cmp_si(na, 1) != 0){
+    // Comprobamos si no hay inverso multiplicativo
+    if (mpz_cmp_si(na, 1) != 0) {
         mpz_set_str(*r, "0", 10);
-        //printf("No hay inverso multiplicativo\n");
         return;
     }
-    //p[i+1] = (p[i-1] - p[i]*c[1])%m
+
+    // Obtenemos el inverso multiplicativo de la última p
     mpz_mul(p[i], p[i-1], c[1]);
     mpz_sub(p[i], p[i-2], p[i]);
     mpz_mod(p[i], p[i], *m);
 
-    //gmp_printf("p = %Zd - %Zd(%Zd) mod %Zd = %Zd\n",p[i-2], p[i-1], c[1], m, p[i]);
+    // Asignamos el inverso multiplicativo al resultado
     mpz_set(*r, p[i]);
 
+    // Liberamos las variables
     mpz_clear(ma);
     mpz_clear(na);
     mpz_clear(x);
-    for(i=0; i<2; i++) mpz_clear(c[i]);
+    for(i=0; i<3; i++) mpz_clear(c[i]);
+
+    // Liberamos memoria
     for (i=0; i<p_size; i++) mpz_clear(p[i]);
     free(p);
 
