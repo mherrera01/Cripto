@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "euclides.h"
+#include "../includes/euclides.h"
 
 mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
     // Control de errores

@@ -2,78 +2,10 @@
 #include <stdlib.h>
 #include <gmp.h>
 #include <string.h>
-#include "euclides.h"
+#include "../includes/alphabet.h"
+#include "../includes/euclides.h"
 
-char* alphabet = NULL; // Variable global que contiene el alfabeto
-
-char get_letter(int l) {
-    return alphabet[l];
-}
-
-int get_letter_code(char c) {
-    int i;
-    for(i = 0; i < strlen(alphabet); i++){
-        if (alphabet[i] == c){
-            return i;
-        }
-    }
-    return -1;
-}
-
-/**
- * Carga n caracteres del alfabeto en el archivo alphabet/alphabet.txt.
- * Si no hay suficientes caracteres se carga el alfabeto entero.
- * 
- * Devuelve -1 en caso de error y 0 en caso contrario
- */
-int load_alphabet(int n) {
-    FILE* f = NULL;
-    int i, j;
-
-    // Control de errores
-    if (n <= 0) return -1;
-
-    // Inicializamos memoria para el alfabeto
-    alphabet = (char*) malloc ((n+1) *sizeof(char));
-    if (alphabet == NULL) return -1;
-
-    // Abrimos el archivo donde está guardado el alfabeto y lo leemos
-    f = fopen("alphabet/alphabet.txt", "r");
-    if (fgets(alphabet, n+1, f) == NULL) return -1;
-
-    /* Comprueba que la n introducida no sea mayor que el tamaño del alfabeto en el archivo y si lo es avisa al
-    usuario y cambia el valor de n por el tamaño del alfabeto */
-    if (n > strlen(alphabet)) {
-        n = strlen(alphabet);
-        printf("Warning: El tamaño del alfabeto es menor a la n introducida.\n");
-        printf("Para cambiar el alfabeto modificar en alphabet/alphabet.txt.\n");
-        printf("Se considerará n el tamaño del alfabeto, %d en este caso.\n", n);
-    }
-    
-    // Comprueba si el alfabeto tiene caracteres repetidos
-    for (i = 0; i < strlen(alphabet); i++) {
-        for (j = 0; j < i; j++) {
-            if (alphabet[i] == alphabet[j]) {
-                printf("Error: El caracter %c está repetido en el alfabeto.\n", alphabet[i]);
-                printf("Para cambiar el alfabeto modificar en alphabet/alphabet.txt.\n");
-
-                fclose(f);
-                return -1;
-            }
-        }
-    }
-
-    printf("Alfabeto cargado: %s\n", alphabet);
-
-    fclose(f);
-    return 0;
-}
-
-// Liberamos la memoria del alfabeto
-void destroy_alphabet() {
-    free(alphabet);
-    alphabet = NULL;
-}
+#define MAX_MESSAGE_SIZE 100
 
 char affine_encrypt_char(char origin, int a, int b, int n) {
     int result;
@@ -193,7 +125,7 @@ void close_files (FILE *input, FILE *output) {
 
 int main (int argc, char *argv[]) {
     mpz_t a, b, n, inv;
-    char message[100];
+    char message[MAX_MESSAGE_SIZE];
     int i, modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
 
@@ -296,7 +228,8 @@ int main (int argc, char *argv[]) {
     }
     
     // Leemos el mensaje a cifrar/descifrar
-    fscanf(input, "%s", message);
+    fgets(message, MAX_MESSAGE_SIZE, input);
+    message[strlen(message)-1] = 0;
 
     if (modo == 0) {
         // Ciframos el mensaje
