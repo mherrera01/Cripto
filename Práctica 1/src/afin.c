@@ -76,17 +76,23 @@ void destroy_alphabet() {
 }
 
 char affine_encrypt_char(char origin, int a, int b, int n) {
+    int result;
+
     origin = get_letter_code(origin);
-    if(origin == -1) return '_';
-    printf("%d*%d+%d mod %d = %d\n", (origin), a, b, n, (((origin)*a+b)%n));
-    return get_letter(((origin)*a+b)%n);
+    if (origin == -1) return '_'; // Caracter desconocido
+
+    result = ((origin)*a+b)%n;
+    return get_letter(result);
 }
 
 char affine_decrypt_char(char origin, int inv, int b, int n) {
+    int result;
+
     origin = get_letter_code(origin);
-    if(origin == -1) return '_';
-    printf("(%d-%d)*%d mod %d = %d\n", (origin), b, inv, n, ((((origin)-b)*inv)%n));
-    return get_letter(((origin)-b)*inv%n);
+    if (origin == -1) return '_'; // Caracter desconocido
+
+    result = ((origin-b)*inv)%n;
+    return get_letter(result<0?result+n:result); // Si el resultado es negativo, obtenemos su equivalente positivo.
 }
 
 void affine_encrypt(char* message, mpz_t* inv, mpz_t* a, mpz_t* b, mpz_t* n){
@@ -105,7 +111,7 @@ void affine_encrypt(char* message, mpz_t* inv, mpz_t* a, mpz_t* b, mpz_t* n){
         mpz_mod(*b, *b, *n);
     }
 
-    get_modular_inverse(inv, a, n);
+    get_modular_inverse(inv, n, a);
 
     if (mpz_cmp_si(*inv, 0) == 0) {
         gmp_printf("%Zd no tiene inverso multiplicativo.\n", a);
@@ -137,7 +143,7 @@ void affine_decrypt(char* message, mpz_t* inv, mpz_t* a, mpz_t* b, mpz_t* n){
         mpz_mod(*b, *b, *n);
     }
 
-    get_modular_inverse(inv, a, n);
+    get_modular_inverse(inv, n, a);
 
     if (mpz_cmp_si(*inv, 0) == 0) {
         gmp_printf("%Zd no tiene inverso multiplicativo.\n", a);
