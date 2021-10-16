@@ -25,6 +25,12 @@ void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n) {
     // Control de errores
     if (r == NULL || m == NULL || n == NULL) return;
 
+    // El inverso multiplicativo de 1 siempre es 1
+    if (mpz_cmp_si(*n, 1) == 0) {
+        mpz_set(*r, *n);
+        return;
+    }
+
     // Inicializamos memoria para los resultados de p0, p1 y p2
     p = (mpz_t*) malloc (p_size * sizeof(mpz_t));
     if (p == NULL) return;
@@ -97,4 +103,31 @@ void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n) {
     free(p);
 
     return;
+}
+
+int get_modular_intverse(int m, int n) {
+    mpz_t mr, mm, mn;
+    int ret;
+
+    // Inicializamos las varibales mpz
+    mpz_init(mr);
+    mpz_init(mm);
+    mpz_init(mn);
+
+    // Les damos a las varibales mpz el valor de los ints
+    mpz_set_si(mm, m);
+    mpz_set_si(mn, n);
+    
+    // Calculamos el inverso modular
+    get_modular_inverse(&mr, &mm, &mn);
+
+    // Convertimos el resultado a int
+    ret = (int) mpz_get_si(mr);
+
+    // Borramos las varibales mpz
+    mpz_clear(mr);
+    mpz_clear(mm);
+    mpz_clear(mn);
+
+    return ret;
 }

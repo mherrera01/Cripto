@@ -19,7 +19,7 @@ afin: $(OBJDIR)/afin.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Afin compilation completed
 
-hill: $(OBJDIR)/hill.o $(OBJDIR)/alphabet.o $(OBJDIR)/matrix.o
+hill: $(OBJDIR)/hill.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o
 	@echo Compiling hill...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Hill compilation completed
@@ -36,7 +36,7 @@ $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
 $(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/matrix.o: srclib/matrix.c includes/matrix.h
+$(OBJDIR)/matrix.o: srclib/matrix.c includes/matrix.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
@@ -50,4 +50,4 @@ runv_afin:
 
 runv_hill:
 	@echo Debugging hill with valgrind...
-	@valgrind --leak-check=full ./hill
+	@valgrind --leak-check=full ./hill -C -m 26 -n 3 -k matrix/matrix.txt

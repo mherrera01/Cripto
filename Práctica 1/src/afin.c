@@ -190,7 +190,7 @@ int main (int argc, char *argv[]) {
             // Abrimos fichero de entrada
             input = fopen(argv[++i], "r");
             if (input == NULL) {
-                printf("Error: El archivo %s no se ha podido encontrar.\n", argv[i]);
+                printf("Error: El archivo de entrada %s no se ha podido encontrar.\n", argv[i]);
 
                 close_files(input, output);
                 free_mpz_vars(&a, &b, &n, &inv);
@@ -201,7 +201,7 @@ int main (int argc, char *argv[]) {
             // Abrimos fichero de salida
             output = fopen(argv[++i], "w");
             if (output == NULL) {
-                printf("Error: El archivo %s no se ha podido encontrar.\n", argv[i]);
+                printf("Error: El archivo de salida %s no se ha podido encontrar.\n", argv[i]);
 
                 close_files(input, output);
                 free_mpz_vars(&a, &b, &n, &inv);
