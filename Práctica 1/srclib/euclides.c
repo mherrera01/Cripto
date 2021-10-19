@@ -81,16 +81,15 @@ void get_modular_inverse(mpz_t *r, mpz_t *m, mpz_t *n) {
     // Comprobamos si no hay inverso multiplicativo
     if (mpz_cmp_si(na, 1) != 0) {
         mpz_set_str(*r, "0", 10);
-        return;
+    } else {
+        // Obtenemos el inverso multiplicativo de la última p
+        mpz_mul(p[i], p[i-1], c[1]);
+        mpz_sub(p[i], p[i-2], p[i]);
+        mpz_mod(p[i], p[i], *m);
+
+        // Asignamos el inverso multiplicativo al resultado
+        mpz_set(*r, p[i]);
     }
-
-    // Obtenemos el inverso multiplicativo de la última p
-    mpz_mul(p[i], p[i-1], c[1]);
-    mpz_sub(p[i], p[i-2], p[i]);
-    mpz_mod(p[i], p[i], *m);
-
-    // Asignamos el inverso multiplicativo al resultado
-    mpz_set(*r, p[i]);
 
     // Liberamos las variables
     mpz_clear(ma);

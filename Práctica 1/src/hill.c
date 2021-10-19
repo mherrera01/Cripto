@@ -7,12 +7,20 @@
 #define MAX_MESSAGE_SIZE 100
 
 char* hill_encrypt(char* message, Matrix* key, int m) {
+    Matrix *inverse = NULL;
     int i, j, blockSize;
     char* encryptedMessage = NULL;
     int* block = NULL, * encryptedBlock = NULL;
 
     // Revisamos que los inputs tengan la memoria reservada.
     if (message == NULL || key == NULL) return NULL;
+
+    // Comprobamos si la matriz tiene inversa
+    inverse = calculate_inverse(key, m);
+    if (inverse == NULL) {
+        printf("Error: La matriz no tiene inversa.\n");
+        return NULL;
+    } else destroy_matrix(inverse);
 
     // Reservamos espacio para el mensaje cifrado.
     encryptedMessage = (char*) calloc (strlen(message)+1, sizeof(char));
@@ -214,12 +222,6 @@ int main (int argc, char *argv[]) {
         close_files(k, input, output);
         return -1;
     }
-
-    /*
-    Matrix* inverse = NULL;
-    inverse = calculate_inverse(matr, m);
-    print_matrix(inverse);
-    destroy_matrix(inverse);*/
 
     // Leemos el mensaje a cifrar/descifrar
     fgets(message, MAX_MESSAGE_SIZE, input);
