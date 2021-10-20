@@ -62,4 +62,4 @@ runv_hill:
 
 runv_vigenere:
 	@echo Debugging vigenere with valgrind...
-	@valgrind --leak-check=full ./vigenere -C -k TODO
+	@valgrind --leak-check=full ./vigenere -C -k CIPHER
