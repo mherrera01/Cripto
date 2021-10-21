@@ -19,7 +19,7 @@ afin: $(OBJDIR)/afin.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Afin compilation completed
 
-hill: $(OBJDIR)/hill.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o
+hill: $(OBJDIR)/hill.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o $(OBJDIR)/padding.o
 	@echo Compiling hill...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Hill compilation completed
@@ -47,8 +47,11 @@ $(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 $(OBJDIR)/matrix.o: srclib/matrix.c includes/matrix.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/padding.o: srclib/padding.c includes/padding.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	@rm -rf $(OBJDIR) afin hill vigenere
+	@rm -rf $(OBJDIR) afin hill vigenere padding
 	@echo Project cleaned
 
 # Valgrind rules

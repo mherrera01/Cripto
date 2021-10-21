@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../includes/alphabet.h"
 #include "../includes/matrix.h"
+#include "../includes/padding.h"
 
 #define MAX_MESSAGE_SIZE 100
 
@@ -22,16 +23,18 @@ char* hill_encrypt(char* message, Matrix* key, int m) {
         return NULL;
     } else destroy_matrix(inverse);
 
-    // Reservamos espacio para el mensaje cifrado.
-    encryptedMessage = (char*) calloc (strlen(message)+1, sizeof(char));
-    if (encryptedMessage == NULL) return NULL;
-
     // Obtenemos el tamaño de la matriz, que va a ser el tamaño del bloque también.
     blockSize = get_matrix_size(key);
     if (blockSize == -1) {
         free(encryptedMessage);
         return NULL;
     }
+
+    //if(pad(message, blockSize)) return NULL;
+
+    // Reservamos espacio para el mensaje cifrado.
+    encryptedMessage = (char*) calloc (strlen(message)+1, sizeof(char));
+    if (encryptedMessage == NULL) return NULL;
 
     // Reservamos el espacio para cada bloque de caracteres que vamos a cifrar.
     block = (int*) malloc (blockSize*sizeof(int));
