@@ -11,7 +11,7 @@ int get_letter_code(char c);
  * Carga n caracteres del alfabeto en el archivo alphabet/alphabet.txt.
  * Si no hay suficientes caracteres se carga el alfabeto entero.
  * 
- * Devuelve -1 en caso de error y 0 en caso contrario.
+ * Devuelve -1 en caso de error y el número de caracteres cargados en caso contrario.
  */
 int load_alphabet(int n);
 

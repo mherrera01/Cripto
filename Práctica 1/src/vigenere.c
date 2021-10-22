@@ -4,30 +4,59 @@
 #include "../includes/alphabet.h"
 
 char* vigenere_encrypt(char *message, char *key, int m) {
-    int i;
+    int i, encryptedLetter, originalLetter, keyLetter;
     char* encryptedMessage = NULL;
 
     // Control de errores
-    if (message == NULL || key == NULL || m <= 0 || strlen(message) > strlen(key)){
-        printf("Hola negros\n");
+    if (message == NULL || key == NULL || m <= 0 || strlen(message) > strlen(key)) {
         return NULL;
     }
 
-    encryptedMessage = (char*) malloc (strlen(message)*sizeof(char));
-    if(encryptedMessage == NULL) return NULL;
+    // Reservamos espacio para el mensaje cifrado
+    encryptedMessage = (char*) calloc (strlen(message)+1, sizeof(char));
+    if (encryptedMessage == NULL) return NULL;
 
-    for(i = 0; i < strlen(message); i++){
-        encryptedMessage[i]=get_letter((get_letter_code(message[i])+get_letter_code(key[i])%m));
+    // Iteramos por los caracteres dentro del bloque
+    for (i = 0; i < strlen(message); i++) {
+        originalLetter = get_letter_code(message[i]);
+        keyLetter = get_letter_code(key[i]);
+
+        // En caso de que sean un caracter inválido, ponemos _.
+        if (originalLetter == -1 || keyLetter == -1) {
+            encryptedMessage[i] = '_';
+            continue;
+        }
+
+        // Ciframos el caracter
+        encryptedLetter = originalLetter + keyLetter;
+        encryptedMessage[i] = get_letter(encryptedLetter % m);
     }
 
     return encryptedMessage;
 }
 
-int vigenere_decrypt(char *message, char *key, int m) {
-    // Control de errores
-    if (message == NULL || key == NULL || m <= 0) return -1;
+char* vigenere_decrypt(char *message, char *key, int m) {
+    char* decryptedMessage = NULL;
 
-    return 0;
+    // Control de errores
+    if (message == NULL || key == NULL || m <= 0 || strlen(message) > strlen(key)) return NULL;
+
+    decryptedMessage = vigenere_encrypt(message, key, m);
+    return decryptedMessage;
+}
+
+char* decrypt_key(char *key, int m) {
+    int i;
+
+    // Control de errores.
+    if (key == NULL || m <= 0) return NULL;
+
+    // Cambiamos el valor de la clave para que deshaga los cambios de la encriptación con su inverso aditivo.
+    for (i = 0; i < strlen(key); i++) {
+        key[i] = get_letter((m - get_letter_code(key[i])) % m);
+    }
+
+    return key;
 }
 
 // Imprime en pantalla el uso de los comandos del programa
@@ -54,9 +83,9 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main (int argc, char *argv[]) {
-    char *k, *convertToLong, *message = NULL;
+    char *k, *convertToLong, *convertedMsg = NULL, *message = NULL;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
-    int i, endRead = 0, readChars = 0, keyLength = 0, m = 26;
+    int i, endRead = 0, readChars = 0, keyLength = 0, m = 79;
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
@@ -125,7 +154,7 @@ int main (int argc, char *argv[]) {
     }
 
     // Cargamos el alfabeto del archivo alphabet/alphabet.txt
-    if (load_alphabet(m) == -1) {
+    if ((m = load_alphabet(m)) == -1) {
         printf("Error: El alfabeto no se pudo cargar.\n");
 
         close_files(input, output);
@@ -152,22 +181,36 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
+    // Invertimos la clave si vamos a descifrar
+    if (modo == 1) {
+        if (decrypt_key(k, m) == NULL) {
+            printf("Error: No se ha podido generar la clave para descifrar.\n");
+
+            free(message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+    }
+
     // Leemos el mensaje a cifrar/descifrar
     while (fgets(message + readChars, (keyLength - readChars + 1), input) != NULL) {
         // Si la entrada es stdin en el salto de línea dejamos de leer
         endRead = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endRead) message[strcspn(message, "\n")] = '\0';
 
         /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
         leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
         if (!(input == stdin) && strchr(message, '\n') != NULL) {
-            readChars = strcspn(message, "\n") + 1;
+            readChars = strcspn(message, "\n") + 1; // Asignamos por donde debemos seguir leyendo
             message[readChars - 1] = ' '; // Sustituimos el salto de línea por un espacio
             continue;
         } else readChars = 0;
 
         if (modo == 0) {
             // Ciframos el mensaje
-            if (vigenere_encrypt(message, k, m) == NULL) {
+            convertedMsg = vigenere_encrypt(message, k, m);
+            if (convertedMsg == NULL) {
                 printf("Error: No se ha podido cifrar el mensaje %s\n", message);
 
                 free(message);
@@ -177,10 +220,14 @@ int main (int argc, char *argv[]) {
             }
 
             // Mostramos el mensaje cifrado
-            fprintf(output, "%s", message);
+            fprintf(output, "%s", convertedMsg);
+
+            // Liberamos la memoria del mensaje cifrado
+            free(convertedMsg);
         } else {
             // Desciframos el mensaje
-            if (vigenere_decrypt(message, k, m) == -1) {
+            convertedMsg = vigenere_decrypt(message, k, m);
+            if (convertedMsg == NULL) {
                 printf("Error: No se ha podido descifrar el mensaje %s\n", message);
 
                 free(message);
@@ -190,7 +237,10 @@ int main (int argc, char *argv[]) {
             }
 
             // Mostramos el mensaje descifrado
-            fprintf(output, "%s", message);
+            fprintf(output, "%s", convertedMsg);
+
+            // Liberamos la memoria del mensaje descifrado
+            free(convertedMsg);
         }
 
         // Limpiamos el buffer del mensaje

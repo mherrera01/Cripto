@@ -126,7 +126,7 @@ void close_files (FILE *input, FILE *output) {
 int main (int argc, char *argv[]) {
     mpz_t a, b, n, inv;
     char message[MAX_MESSAGE_SIZE];
-    int i, modo = 0; // modo en 0 para cifrar y 1 para descifrar
+    int i, modo = 0, loadAlphabetN; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
 
     // Inicializamos variables
@@ -219,13 +219,15 @@ int main (int argc, char *argv[]) {
     }
 
     // Cargamos el alfabeto del archivo alphabet/alphabet.txt
-    if (load_alphabet(mpz_get_si(n)) == -1) {
+    loadAlphabetN = load_alphabet(mpz_get_si(n));
+    if (loadAlphabetN == -1) {
         printf("Error: El alfabeto no se pudo cargar.\n");
 
         close_files(input, output);
         free_mpz_vars(&a, &b, &n, &inv);
         return -1;
     }
+    mpz_set_si(n, loadAlphabetN);
     
     // Leemos el mensaje a cifrar/descifrar
     fgets(message, MAX_MESSAGE_SIZE, input);

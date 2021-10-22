@@ -6,6 +6,7 @@
 char* alphabet = NULL; // Variable global que contiene el alfabeto.
 
 char get_letter(int l) {
+    if (l<0 || l>=strlen(alphabet)) return '_'; // Caracter desconocido
     return alphabet[l];
 }
 
@@ -59,7 +60,7 @@ int load_alphabet(int n) {
     printf("Alfabeto cargado: %s\n", alphabet);
 
     fclose(f);
-    return 0;
+    return n;
 }
 
 void destroy_alphabet() {
