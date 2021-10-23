@@ -1,6 +1,8 @@
 #ifndef ALPHABET_H
 #define ALPHABET_H
 
+#define DEFAULT_ALPHABET_SIZE 79
+
 /* Devuelve una letra dado el código de esa letra en nuestro alfabeto.*/
 char get_letter(int l);
 

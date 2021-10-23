@@ -41,6 +41,7 @@ char* vigenere_decrypt(char *message, char *key, int m) {
     // Control de errores
     if (message == NULL || key == NULL || m <= 0 || strlen(message) > strlen(key)) return NULL;
 
+    // Desciframos con el inverso aditivo
     decryptedMessage = vigenere_encrypt(message, key, m);
     return decryptedMessage;
 }
@@ -85,7 +86,7 @@ void close_files (FILE *input, FILE *output) {
 int main (int argc, char *argv[]) {
     char *k, *convertToLong, *convertedMsg = NULL, *message = NULL;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
-    int i, endRead = 0, readChars = 0, keyLength = 0, m = 79;
+    int i, endRead = 0, readChars = 0, keyLength = 0, m = DEFAULT_ALPHABET_SIZE;
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
@@ -219,11 +220,6 @@ int main (int argc, char *argv[]) {
                 return -1;
             }
 
-            // Mostramos el mensaje cifrado
-            fprintf(output, "%s", convertedMsg);
-
-            // Liberamos la memoria del mensaje cifrado
-            free(convertedMsg);
         } else {
             // Desciframos el mensaje
             convertedMsg = vigenere_decrypt(message, k, m);
@@ -235,13 +231,13 @@ int main (int argc, char *argv[]) {
                 close_files(input, output);
                 return -1;
             }
-
-            // Mostramos el mensaje descifrado
-            fprintf(output, "%s", convertedMsg);
-
-            // Liberamos la memoria del mensaje descifrado
-            free(convertedMsg);
         }
+
+        // Mostramos el mensaje convertido
+        fprintf(output, "%s", convertedMsg);
+
+        // Liberamos la memoria del mensaje convertido
+        free(convertedMsg);
 
         // Limpiamos el buffer del mensaje
         memset(message, 0, keyLength + 1);

@@ -5,32 +5,20 @@
 #include "../includes/matrix.h"
 #include "../includes/padding.h"
 
-#define MAX_MESSAGE_SIZE 100
-
 char* hill_encrypt(char* message, Matrix* key, int m) {
-    Matrix *inverse = NULL;
-    int i, j, blockSize;
-    char* encryptedMessage = NULL;
-    int* block = NULL, * encryptedBlock = NULL;
+    int i, invalidBlock = 0, blockSize = 0;
+    char *encryptedMessage = NULL;
+    int *block = NULL, *encryptedBlock = NULL;
 
-    // Revisamos que los inputs tengan la memoria reservada.
-    if (message == NULL || key == NULL) return NULL;
-
-    // Comprobamos si la matriz tiene inversa
-    inverse = calculate_inverse(key, m);
-    if (inverse == NULL) {
-        printf("Error: La matriz no tiene inversa.\n");
-        return NULL;
-    } else destroy_matrix(inverse);
+    // Control de errores
+    if (message == NULL || key == NULL || m <= 0) return NULL;
 
     // Obtenemos el tamaño de la matriz, que va a ser el tamaño del bloque también.
     blockSize = get_matrix_size(key);
-    if (blockSize == -1) {
-        free(encryptedMessage);
-        return NULL;
-    }
+    if (blockSize == -1 || strlen(message) > blockSize) return NULL;
 
-    //if(pad(message, blockSize)) return NULL;
+    // Añadimos padding al bloque para que tenga el tamaño de la matriz
+    if (pad(message, blockSize) == -1) return NULL;
 
     // Reservamos espacio para el mensaje cifrado.
     encryptedMessage = (char*) calloc (strlen(message)+1, sizeof(char));
@@ -43,50 +31,41 @@ char* hill_encrypt(char* message, Matrix* key, int m) {
         return NULL;
     }
 
-    // Iteramos por bloques y dentro de cada bloque por sus caracteres.
-    for (i = 0; i < strlen(message)/blockSize; i++) {
-        for (j=i*blockSize; j<(i+1)*blockSize; j++) {
-            // Guardamos en el bloque el próximo grupo de letras del mensaje.
-            block[j-i*blockSize] = get_letter_code(message[j]);
-        }
+    // Iteramos por los caracteres dentro del bloque y le asignamos su código en el alfabeto
+    for (i = 0; i < strlen(message); i++) {
+        block[i] = get_letter_code(message[i]);
 
+        // En caso de que sea un caracter inválido, ponemos _ en todo el bloque
+        if (block[i] == -1) {
+            invalidBlock = 1;
+            break;
+        }
+    }
+
+    // Ciframos el bloque con la matriz clave
+    if (!invalidBlock) {
         encryptedBlock = process_block(block, key, m);
         if (encryptedBlock == NULL) {
             free(block);
             free(encryptedMessage);
             return NULL;
         }
+    }
 
-        for (j=i*blockSize; j<(i+1)*blockSize; j++) {
-            // Guardamos en el mensaje encriptado el resultado de cada bloque.
-            encryptedMessage[j] = get_letter(encryptedBlock[j-i*blockSize]);
+    // Asignamos las letras cifradas al buffer
+    for (i = 0; i < strlen(message); i++) {
+        if (invalidBlock) {
+            encryptedMessage[i] = '_'; // Ha habido algún caracter inválido en el bloque
+        } else {
+            encryptedMessage[i] = get_letter(encryptedBlock[i]);
         }
-
-        // Liberamos la memoria del bloque cifrado
-        free(encryptedBlock);
-        encryptedBlock = NULL;
     }
 
     // Liberamos memoria
+    free(encryptedBlock);
     free(block);
 
     return encryptedMessage;
-}
-
-char* hill_decrypt(char* message, Matrix* key, int m) {
-    Matrix* inverse = NULL;
-    char* decryptedMessage = NULL;
-    
-    // Calculamos la inversa de la matriz, que vamos a usar como clave para descifrar.
-    inverse = calculate_inverse(key, m);
-    if (inverse == NULL) return NULL;
-
-    // Descifrar es lo mismo que cifrar con la matriz inversa, así que este es el método que utilizaremos.
-    decryptedMessage = hill_encrypt(message, inverse, m);
-
-    // Liberamos la matriz inversa
-    destroy_matrix(inverse);
-    return decryptedMessage;
 }
 
 // Imprime en pantalla el uso de los comandos del programa
@@ -104,6 +83,13 @@ void print_help() {
     printf("---------------------------\n");
 }
 
+// Libera la memoria inicializada
+void free_mem (Matrix *matr, Matrix *inverse, char *message) {
+    if (matr != NULL) destroy_matrix(matr);
+    if (inverse != NULL) destroy_matrix(inverse);
+    if (message != NULL) free(message);
+}
+
 // Cerramos los archivos en disco abiertos previamente
 void close_files (FILE *k, FILE *input, FILE *output) {
     if (input == NULL || output == NULL) return;
@@ -117,11 +103,11 @@ void close_files (FILE *k, FILE *input, FILE *output) {
 }
 
 int main (int argc, char *argv[]) {
-    int m = 0, n = 0;
-    char *convertToLong, *convertedMsg = NULL, message[MAX_MESSAGE_SIZE];
-    int i, modo = 0; // modo en 0 para cifrar y 1 para descifrar
+    int i, endRead = 0, readChars = 0, blockSize = 0, m = 0, n = 0;
+    char *convertToLong, *convertedMsg = NULL, *message = NULL;
+    int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *k = NULL, *input = stdin, *output = stdout;
-    Matrix *matr = NULL;
+    Matrix *matr = NULL, *inverse = NULL;
 
     // Comprobar número de argumentos del usuario
     if (argc < 8 || argc > 12) {
@@ -226,47 +212,97 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
-    // Leemos el mensaje a cifrar/descifrar
-    fgets(message, MAX_MESSAGE_SIZE, input);
-    message[strlen(message)-1] = 0;
+    // Comprobamos si la matriz tiene inversa
+    inverse = calculate_inverse(matr, m);
+    if (inverse == NULL) {
+        printf("Error: La matriz clave no tiene inversa.\n");
 
-    if (modo == 0) {
-        // Ciframos el mensaje
-        convertedMsg = hill_encrypt(message, matr, m);
-        if (convertedMsg == NULL) {
-            printf("Error: No se ha podido cifrar el mensaje %s con la matriz:\n", message);
-            print_matrix(matr);
-
-            destroy_matrix(matr);
-            destroy_alphabet();
-            close_files(k, input, output);
-            return -1;
-        }
-
-        // Mostramos el mensaje cifrado
-        fprintf(output, "El mensaje cifrado es %s\n", convertedMsg);
-    } else {
-        // Desciframos el mensaje
-        convertedMsg = hill_decrypt(message, matr, m);
-        if (convertedMsg == NULL) {
-            printf("Error: No se ha podido descifrar el mensaje %s con la matriz:\n", message);
-            print_matrix(matr);
-
-            destroy_matrix(matr);
-            destroy_alphabet();
-            close_files(k, input, output);
-            return -1;
-        }
-
-        // Mostramos el mensaje descifrado
-        fprintf(output, "El mensaje descifrado es %s\n", convertedMsg);
+        free_mem(matr, inverse, message);
+        destroy_alphabet();
+        close_files(k, input, output);
+        return -1;
     }
 
-    // Liberamos el mensaje convertido
-    free(convertedMsg);
+    // Obtenemos el tamaño de la matriz, que va a ser el tamaño del bloque también
+    blockSize = get_matrix_size(matr);
+    if (blockSize == -1) {
+        printf("Error: No se ha podido obtener el tamaño del bloque.\n");
 
-    // Liberamos la matriz
-    destroy_matrix(matr);
+        free_mem(matr, inverse, message);
+        destroy_alphabet();
+        close_files(k, input, output);
+        return -1;
+    }
+
+    // Inicializamos el buffer del mensaje a leer con el tamaño de la matriz
+    message = (char *) malloc ((blockSize + 1) * sizeof(char));
+    if (message == NULL) {
+        printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
+
+        free_mem(matr, inverse, message);
+        destroy_alphabet();
+        close_files(k, input, output);
+        return -1;
+    }
+
+    // Leemos el mensaje a cifrar/descifrar
+    while (fgets(message + readChars, (blockSize - readChars + 1), input) != NULL) {
+        // Si la entrada es stdin en el salto de línea dejamos de leer
+        endRead = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endRead) message[strcspn(message, "\n")] = '\0';
+
+        /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
+        leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
+        if (!(input == stdin) && strchr(message, '\n') != NULL) {
+            readChars = strcspn(message, "\n") + 1; // Asignamos por donde debemos seguir leyendo
+            message[readChars - 1] = ' '; // Sustituimos el salto de línea por un espacio
+            continue;
+        } else readChars = 0;
+
+        if (modo == 0) {
+            // Ciframos el mensaje
+            convertedMsg = hill_encrypt(message, matr, m);
+            if (convertedMsg == NULL) {
+                printf("Error: No se ha podido cifrar el mensaje %s con la matriz:\n", message);
+                print_matrix(matr);
+
+                free_mem(matr, inverse, message);
+                destroy_alphabet();
+                close_files(k, input, output);
+                return -1;
+            }
+
+        } else {
+            // Descifrar es lo mismo que cifrar con la matriz inversa, así que este es el método que utilizaremos.
+            convertedMsg = hill_encrypt(message, inverse, m);
+            if (convertedMsg == NULL) {
+                printf("Error: No se ha podido descifrar el mensaje %s con la matriz inversa:\n", message);
+                print_matrix(inverse);
+
+                free_mem(matr, inverse, message);
+                destroy_alphabet();
+                close_files(k, input, output);
+                return -1;
+            }
+        }
+
+        // Mostramos el mensaje convertido
+        fprintf(output, "%s", convertedMsg);
+
+        // Liberamos la memoria del mensaje convertido
+        free(convertedMsg);
+
+        // Limpiamos el buffer del mensaje
+        memset(message, 0, blockSize + 1);
+
+        // Salir del bucle en stdin
+        if (endRead) break;
+    }
+
+    if (output == stdout) fprintf(output, "\n");
+
+    // Liberamos memoria
+    free_mem(matr, inverse, message);
 
     // Liberamos alfabeto
     destroy_alphabet();
