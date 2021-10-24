@@ -74,3 +74,7 @@ runv_hill:
 runv_vigenere:
 	@echo Debugging vigenere with valgrind...
 	@valgrind --leak-check=full ./vigenere -C -k CIPHER
+
+runv_flujo:
+	@echo Debugging flujo with valgrind...
+	@valgrind --leak-check=full ./flujo -C -k 54362 -o testfiles/cifrado_flujo.txt

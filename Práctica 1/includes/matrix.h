@@ -6,6 +6,8 @@ typedef struct _Matrix Matrix;
 // Libera la memoria de una matriz
 void destroy_matrix(Matrix* matrix);
 
+Matrix* init_matrix(int size);
+
 /**
  * Devuelve una matriz inicializada por el archivo y tamaño dados.
  * En caso de que el tamaño sea mayor que la matriz en el archivo o
@@ -24,6 +26,10 @@ Matrix *read_matrix(FILE *file, int size, int m);
 // Devuelve el tamaño de una matriz o -1 en caso de error
 int get_matrix_size(Matrix* matrix);
 
+int get_matrix_cell(Matrix* m, int x, int y);
+
+int set_matrix_cell(Matrix* m, int x, int y, int value);
+
 // Imprime en pantalla una matriz
 void print_matrix(Matrix* matrix);
 
@@ -31,5 +37,7 @@ void print_matrix(Matrix* matrix);
 Matrix *calculate_inverse(Matrix *matrix, int m);
 
 int* process_block(int* block, Matrix* key, int m);
+
+Matrix* copy_matrix(Matrix* m);
 
 #endif

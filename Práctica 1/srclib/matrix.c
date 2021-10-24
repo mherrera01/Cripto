@@ -142,9 +142,40 @@ Matrix* read_matrix(FILE *file, int size, int m) {
     return matrix;
 }
 
+// ---------------- Getters and Setters
+
 int get_matrix_size(Matrix* matrix) {
     if (matrix == NULL) return -1;
     return matrix->size;
+}
+
+int get_matrix_cell(Matrix* m, int x, int y) {
+    if (m == NULL) {
+        printf("Error: La matriz no se puede leer.");
+        return 0;
+    }
+
+    if (m->size >= x || m->size >= y) {
+        printf("Error: el tamaño de la matriz es menor al solicitado.");
+        return 0;
+    }
+
+    return m->matrix[y][x];
+}
+
+int set_matrix_cell(Matrix* m, int x, int y, int value) {
+    if (m == NULL) {
+        printf("Error: La matriz no se puede leer.");
+        return 1;
+    }
+
+    if (m->size >= x || m->size >= y) {
+        printf("Error: el tamaño de la matriz es menor al solicitado.");
+        return 1;
+    }
+
+    m->matrix[y][x] = value;
+    return 0;
 }
 
 void print_matrix(Matrix* matrix) {
@@ -369,4 +400,22 @@ int* process_block(int* block, Matrix* key, int m) {
     }
 
     return ret;
+}
+
+Matrix* copy_matrix(Matrix* m){
+    Matrix* n = NULL;
+    int i, j;
+
+    if(!m) return NULL;
+
+    n = init_matrix(m->size);
+    if(n == NULL) return NULL;
+
+    for(i = 0; i < m->size; i++){
+        for(j = 0; j < m->size; j++){
+            n->matrix[j][i]=m->matrix[j][i];
+        }
+    }
+
+    return n;
 }

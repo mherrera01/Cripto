@@ -14,11 +14,11 @@ int generateRandomNumber(int seed, int m){
     return rand()%m;
 }
 
-char encrypt_char(char original, int key, int m){
+char encrypt_char(char original, int key) {
     return get_letter_code(original) ^ key;
 }
 
-char decrypt_char(char original, int key, int m){
+char decrypt_char(char original, int key) {
     return get_letter(original ^ key);
 }
 
@@ -46,8 +46,10 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main (int argc, char *argv[]) {
-    int i, modo, k, m = DEFAULT_ALPHABET_SIZE;
+    int i, endRead = 0, readChars = 0, k = 0, m = DEFAULT_ALPHABET_SIZE;
     FILE *input = stdin, *output = stdout;
+    int modo = 0; // modo en 0 para cifrar y 1 para descifrar
+    char *convertToLong, *message = NULL;
 
     // Comprobar número de argumentos del usuario
     if (argc < 4 || argc > 8) {
@@ -56,6 +58,8 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
+    // Obtener parámetros del usuario
+    // flujo {-C|-D} {-k clave} [-m |Zm|] [-i filein] [-o fileout]
     for (i = 1; i < argc; i++) {
         if (strcmp("-C", argv[i]) == 0) {
             // Cifrar
@@ -68,10 +72,10 @@ int main (int argc, char *argv[]) {
         } else if (strcmp(argv[i], "-k") == 0) {
             // Número usado como clave.
             k = (int) strtol(argv[++i], &convertToLong, 10);
-
+            
             // Comprobamos si no se ha convertido ningún caracter.
             if (argv[i] == convertToLong) {
-                printf("Error: El parámetro -m %s no es válido.\n", argv[i]);
+                printf("Error: El parámetro -k %s no es válido.\n", argv[i]);
 
                 close_files(input, output);
                 return -1;
@@ -128,7 +132,7 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
-    // Inicializamos el buffer del mensaje a leer con la longitud de la clave
+    // Inicializamos el buffer del mensaje a leer
     message = (char *) malloc ((MAX_MESSAGE_SIZE + 1) * sizeof(char));
     if (message == NULL) {
         printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
@@ -138,13 +142,38 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
-    //Ciframos caracter a caracter con el cifrado de flujo
-    for(i = 0; i < strlen(message); i++){
-        if(modo == 0){
-            fprintf(output, "%c", encrypt_char(message[i], generateRandomNumber(k, m), m))
+    // Leemos el mensaje a cifrar/descifrar
+    while (1) {
+        // Leemos en stdin con fgets para terminar en un salto de línea
+        if (input == stdin) {
+            if (fgets(message, (MAX_MESSAGE_SIZE + 1), input) == NULL) break;
+
+            // En el salto de línea dejamos de leer
+            endRead = (strchr(message, '\n') != NULL);
+            if (endRead) message[strcspn(message, "\n")] = '\0';
+
+            readChars = strlen(message);
+
+        // Leemos archivos binarios con fread
         } else {
-            fprintf(output, "%c", decrypt_char(message[i], generateRandomNumber(k, m), m))
+            readChars = fread(message, sizeof(char), MAX_MESSAGE_SIZE, input);
+            if (readChars <= 0) break;
         }
+
+        // Ciframos caracter a caracter con el cifrado de flujo
+        for (i = 0; i < readChars; i++) {
+            if (modo == 0) {
+                fprintf(output, "%c", encrypt_char(message[i], generateRandomNumber(k, m)));
+            } else {
+                fprintf(output, "%c", decrypt_char(message[i], generateRandomNumber(k, m)));
+            }
+        }
+
+        // Limpiamos el buffer del mensaje
+        memset(message, 0, MAX_MESSAGE_SIZE + 1);
+
+        // Salir del bucle en stdin
+        if (endRead) break;
     }
 
     if (output == stdout) fprintf(output, "\n");

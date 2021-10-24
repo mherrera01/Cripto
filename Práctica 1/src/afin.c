@@ -38,7 +38,7 @@ void affine_encrypt(char* message, mpz_t* inv, mpz_t* a, mpz_t* b, mpz_t* n){
     if (mpz_cmp_si(*a, 0) == -1) {
         mpz_mod(*a, *a, *n);
     }
-    
+
     if (mpz_cmp_si(*b, 0) == -1) {
         mpz_mod(*b, *b, *n);
     }
@@ -125,8 +125,9 @@ void close_files (FILE *input, FILE *output) {
 
 int main (int argc, char *argv[]) {
     mpz_t a, b, n, inv;
-    char message[MAX_MESSAGE_SIZE];
-    int i, modo = 0, loadAlphabetN; // modo en 0 para cifrar y 1 para descifrar
+    char *message = NULL;
+    int i, loadAlphabetN, readChars = 0, endRead = 0;
+    int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
 
     // Inicializamos variables
@@ -228,24 +229,53 @@ int main (int argc, char *argv[]) {
         return -1;
     }
     mpz_set_si(n, loadAlphabetN);
-    
-    // Leemos el mensaje a cifrar/descifrar
-    fgets(message, MAX_MESSAGE_SIZE, input);
-    message[strlen(message)-1] = 0;
 
-    if (modo == 0) {
-        // Ciframos el mensaje
-        affine_encrypt(message, &inv, &a, &b, &n);
+    // Inicializamos el buffer del mensaje a leer
+    message = (char *) malloc ((MAX_MESSAGE_SIZE + 1) * sizeof(char));
+    if (message == NULL) {
+        printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 
-        // Mostramos el mensaje cifrado
-        fprintf(output, "El mensaje cifrado es %s\n", message);
-    } else {
-        // Desciframos el mensaje
-        affine_decrypt(message, &inv, &a, &b, &n);
-
-        // Mostramos el mensaje descifrado
-        fprintf(output, "El mensaje descifrado es %s\n", message);
+        destroy_alphabet();
+        close_files(input, output);
+        return -1;
     }
+
+    // Leemos el mensaje a cifrar/descifrar
+    while (fgets(message + readChars, (MAX_MESSAGE_SIZE - readChars + 1), input) != NULL) {
+        // Si la entrada es stdin en el salto de línea dejamos de leer
+        endRead = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endRead) message[strcspn(message, "\n")] = '\0';
+
+        /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
+        leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
+        if (!(input == stdin) && strchr(message, '\n') != NULL) {
+            readChars = strcspn(message, "\n") + 1; // Asignamos por donde debemos seguir leyendo
+            message[readChars - 1] = ' '; // Sustituimos el salto de línea por un espacio
+            continue;
+        } else readChars = 0;
+
+        if (modo == 0) {
+            // Ciframos el mensaje
+            affine_encrypt(message, &inv, &a, &b, &n);
+        } else {
+            // Desciframos el mensaje
+            affine_decrypt(message, &inv, &a, &b, &n);
+        }
+
+        // Mostramos el mensaje convertido
+        fprintf(output, "%s", message);
+
+        // Limpiamos el buffer del mensaje
+        memset(message, 0, MAX_MESSAGE_SIZE + 1);
+
+        // Salir del bucle en stdin
+        if (endRead) break;
+    }
+
+    if (output == stdout) fprintf(output, "\n");
+
+    // Liberamos memoria
+    free(message);
 
     // Liberamos alfabeto
     destroy_alphabet();
