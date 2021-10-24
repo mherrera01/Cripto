@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs afin hill vigenere flujo
+all: clean createDirs afin hill vigenere flujo perm
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -26,13 +26,18 @@ hill: $(OBJDIR)/hill.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matri
 
 vigenere: $(OBJDIR)/vigenere.o $(OBJDIR)/alphabet.o
 	@echo Compiling vigenere...
-	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Vigenere compilation completed
 
 flujo: $(OBJDIR)/flujo.o $(OBJDIR)/alphabet.o
 	@echo Compiling flujo...
-	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Flujo compilation completed
+
+perm: $(OBJDIR)/perm.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o $(OBJDIR)/padding.o
+	@echo Compiling perm...
+	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@echo Perm compilation completed
 
 $(OBJDIR)/afin.o: src/afin.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -44,6 +49,9 @@ $(OBJDIR)/vigenere.o: src/vigenere.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/flujo.o: src/flujo.c includes/alphabet.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/perm.o: src/perm.c includes/alphabet.h includes/matrix.h includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -59,7 +67,7 @@ $(OBJDIR)/padding.o: srclib/padding.c includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) afin hill vigenere flujo
+	@rm -rf $(OBJDIR) afin hill vigenere flujo perm
 	@echo Project cleaned
 
 # Valgrind rules
