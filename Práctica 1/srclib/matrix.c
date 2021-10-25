@@ -151,7 +151,7 @@ int get_matrix_size(Matrix* matrix) {
 
 int get_matrix_cell(Matrix* m, int x, int y) {
     // Control de errores
-    if (m == NULL || m->size >= x || m->size >= y || x < 0 || y < 0) {
+    if (m == NULL || m->size <= x || m->size <= y || x < 0 || y < 0) {
         return -1;
     }
 
@@ -161,7 +161,7 @@ int get_matrix_cell(Matrix* m, int x, int y) {
 
 int set_matrix_cell(Matrix* m, int x, int y, int value) {
     // Control de errores
-    if (m == NULL || m->size >= x || m->size >= y || x < 0 || y < 0) {
+    if (m == NULL || m->size <= x || m->size <= y || x < 0 || y < 0) {
         return -1;
     }
 

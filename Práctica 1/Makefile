@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs afin hill vigenere flujo perm
+all: clean createDirs afin hill vigenere flujo permutacion
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -34,10 +34,10 @@ flujo: $(OBJDIR)/flujo.o $(OBJDIR)/alphabet.o
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Flujo compilation completed
 
-perm: $(OBJDIR)/perm.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o $(OBJDIR)/padding.o
-	@echo Compiling perm...
+permutacion: $(OBJDIR)/permutacion.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o $(OBJDIR)/padding.o
+	@echo Compiling permutacion...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
-	@echo Perm compilation completed
+	@echo Permutacion compilation completed
 
 $(OBJDIR)/afin.o: src/afin.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -51,7 +51,7 @@ $(OBJDIR)/vigenere.o: src/vigenere.c includes/alphabet.h
 $(OBJDIR)/flujo.o: src/flujo.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/perm.o: src/perm.c includes/alphabet.h includes/matrix.h includes/padding.h
+$(OBJDIR)/permutacion.o: src/permutacion.c includes/alphabet.h includes/matrix.h includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -67,7 +67,7 @@ $(OBJDIR)/padding.o: srclib/padding.c includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) afin hill vigenere flujo perm
+	@rm -rf $(OBJDIR) afin hill vigenere flujo permutacion
 	@echo Project cleaned
 
 # Valgrind rules
@@ -86,3 +86,7 @@ runv_vigenere:
 runv_flujo:
 	@echo Debugging flujo with valgrind...
 	@valgrind --leak-check=full ./flujo -C -k 54362 -o testfiles/cifrado_flujo.txt
+
+runv_permutacion:
+	@echo Debugging permutacion with valgrind...
+	@valgrind --leak-check=full ./permutacion -C -k1 0,2,3,1 -k2 2,1,3,0

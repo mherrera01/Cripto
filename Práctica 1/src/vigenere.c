@@ -90,7 +90,7 @@ int main (int argc, char *argv[]) {
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
-    if (argc < 4 || argc > 8) {
+    if (argc < 4 || argc > 10) {
         printf("Error: Número incorrecto de parámetros.\n");
         print_help();
         return -1;
