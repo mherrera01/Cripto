@@ -5,8 +5,6 @@
 #include "../includes/matrix.h"
 #include "../includes/padding.h"
 
-#define MAX_MESSAGE_SIZE 100
-
 int yPermutate(Matrix* original, Matrix* permutated, int* key_y) {
     int i, j;
 
@@ -69,41 +67,39 @@ Matrix* permutate_encrypt(Matrix* matrix, int* key_y, int* key_x) {
     return permutated;
 }
 
-Matrix* permutate_decrypt(Matrix* matrix, int* key_y, int* key_x){
-    Matrix *m = NULL;
+int decrypt_keys(int* key_y, int* key_x, int size) {
     int i, *key_y2 = NULL, *key_x2 = NULL;
 
     // Creamos dos arrays auxiliares para guardar las claves temporalmente.
-    key_y2 = (int*) malloc (get_matrix_size(matrix)*sizeof(int));
-    key_x2 = (int*) malloc (get_matrix_size(matrix)*sizeof(int));
+    key_y2 = (int*) malloc (size*sizeof(int));
+    key_x2 = (int*) malloc (size*sizeof(int));
+
+    if (key_y2 == NULL || key_x2 == NULL) return -1;
 
     // Calculamos la clave que invertiría la permutación cifrada.
-    for(i = 0; i < get_matrix_size(matrix); i++){
+    for (i = 0; i < size; i++) {
         key_y2[key_y[i]] = i;
         key_x2[key_x[i]] = i;
     }
 
     // Cargamos los valores de los arrays auxiliares al array original.
-    for(i = 0; i < get_matrix_size(matrix); i++){
+    for (i = 0; i < size; i++) {
         key_y[i] = key_y2[i];
-        key_y[i] = key_y2[i];
+        key_x[i] = key_x2[i];
     }
 
     // Liberamos los arrays auxiliares.
     free(key_y2);
     free(key_x2);
 
-    // Ciframos con las claves inversas, lo cual da lugar al texto plano.
-    m = permutate_encrypt(matrix, key_y, key_x);
-    
-    return m;
+    return 0;
 }
 
 Matrix* load_text_to_matrix(char* block, int size) {
     Matrix* matrix = NULL;
     int i, j;
 
-    if (!block || size < 1) {
+    if (!block || size < 1 || size*size != strlen(block)) {
         return NULL;
     }
 
@@ -134,7 +130,7 @@ char* load_matrix_to_text(Matrix* matrix) {
     size = get_matrix_size(matrix);
     if (size == -1) return NULL;
 
-    block = (char*) calloc ((size+1), sizeof(char));
+    block = (char*) calloc ((size*size + 1), sizeof(char));
     if (block == NULL) {
         return NULL;
     }
@@ -160,7 +156,7 @@ int *get_key(char *k, int *keySize) {
     int i, j, valueInt, keyLength = 0, *key = NULL, totalKeyValue = 0;
 
     // Control de errores
-    if (k == NULL) return NULL;
+    if (k == NULL || keySize == NULL) return NULL;
 
     // Obtenemos la longitud de la clave con comas
     keyLength = strlen(k);
@@ -267,10 +263,10 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main (int argc, char* argv[]) {
-    char *k1, *k2, *convertToLong, *message = NULL;
-    int i, *key_y = NULL, *key_x = NULL, size_y = 0, size_x = 0, m = DEFAULT_ALPHABET_SIZE;
+    char *k1, *k2, *convertToLong, *convertedMsg = NULL, *message = NULL;
+    int i, endRead = 0, readChars = 0, *key_y = NULL, *key_x = NULL, size_y = 0, size_x = 0, m = DEFAULT_ALPHABET_SIZE;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
-    Matrix* matrix = NULL, *matrix2 = NULL;
+    Matrix* matrixMsg = NULL, *matrixConvertedMsg = NULL;
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
@@ -382,7 +378,7 @@ int main (int argc, char* argv[]) {
     }
 
     // Inicializamos el buffer del mensaje a leer
-    message = (char *) malloc ((MAX_MESSAGE_SIZE + 1) * sizeof(char));
+    message = (char *) calloc ((size_x * size_y + 1), sizeof(char));
     if (message == NULL) {
         printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 
@@ -392,16 +388,86 @@ int main (int argc, char* argv[]) {
         return -1;
     }
 
-    matrix = load_text_to_matrix("ABCDEFGHIJKLMNOP", size_y);
+    // Generamos las claves para descifrar
+    if (modo == 1) {
+        if (decrypt_keys(key_y, key_x, size_y) == -1){
+            printf("Error: Las claves de descifrado no se han generado correctamente.\n");
 
-    matrix2 = permutate_encrypt(matrix, key_y, key_x);
+            free_mem(key_y, key_x, message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+    }
 
-    message = load_matrix_to_text(matrix2);
+    // Leemos el mensaje a cifrar/descifrar
+    while (fgets(message + readChars, ((size_x * size_y) - readChars + 1), input) != NULL) {
+        // Si la entrada es stdin en el salto de línea dejamos de leer
+        endRead = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endRead) message[strcspn(message, "\n")] = '\0';
 
-    printf("Message: %s\n", message);
+        /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
+        leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
+        if (!(input == stdin) && strchr(message, '\n') != NULL) {
+            readChars = strcspn(message, "\n") + 1; // Asignamos por donde debemos seguir leyendo
+            message[readChars - 1] = ' '; // Sustituimos el salto de línea por un espacio
+            continue;
+        } else readChars = 0;
 
-    destroy_matrix(matrix);
-    destroy_matrix(matrix2);
+        // Añadimos padding al mensaje para que tenga el tamaño de la matriz M, N
+        if (pad(message, size_x * size_y) == -1) {
+            printf("Error: No se ha podido realizar el padding del mensaje correctamente.\n");
+
+            free_mem(key_y, key_x, message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+
+        // Convertimos el mensaje leído a una matriz
+        matrixMsg = load_text_to_matrix(message, size_y);
+        if (matrixMsg == NULL) {
+            printf("Error: No se ha podido convertir el mensaje a una matriz.\n");
+
+            free_mem(key_y, key_x, message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+        
+        // Ciframos/Desciframos el mensaje
+        matrixConvertedMsg = permutate_encrypt(matrixMsg, key_y, key_x);
+
+        convertedMsg = load_matrix_to_text(matrixConvertedMsg);
+        if (convertedMsg == NULL) {
+            printf("Error: No se ha podido convertir el mensaje %s\n", message);
+
+            // Liberamos las matrices
+            destroy_matrix(matrixMsg);
+            if (matrixConvertedMsg != NULL) destroy_matrix(matrixConvertedMsg);
+
+            free_mem(key_y, key_x, message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+
+        // Mostramos el mensaje convertido
+        fprintf(output, "%s", convertedMsg);
+
+        // Liberamos la memoria
+        destroy_matrix(matrixMsg);
+        destroy_matrix(matrixConvertedMsg);
+        free(convertedMsg);
+
+        // Limpiamos el buffer del mensaje
+        memset(message, 0, size_x * size_y + 1);
+
+        // Salir del bucle en stdin
+        if (endRead) break;
+    }
+
+    if (output == stdout) fprintf(output, "\n");
 
     // Liberamos memoria
     free_mem(key_y, key_x, message);

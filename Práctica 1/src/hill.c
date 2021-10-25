@@ -235,7 +235,7 @@ int main (int argc, char *argv[]) {
     }
 
     // Inicializamos el buffer del mensaje a leer con el tamaño de la matriz
-    message = (char *) malloc ((blockSize + 1) * sizeof(char));
+    message = (char *) calloc ((blockSize + 1), sizeof(char));
     if (message == NULL) {
         printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 

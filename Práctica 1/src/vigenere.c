@@ -35,17 +35,6 @@ char* vigenere_encrypt(char *message, char *key, int m) {
     return encryptedMessage;
 }
 
-char* vigenere_decrypt(char *message, char *key, int m) {
-    char* decryptedMessage = NULL;
-
-    // Control de errores
-    if (message == NULL || key == NULL || m <= 0 || strlen(message) > strlen(key)) return NULL;
-
-    // Desciframos con el inverso aditivo
-    decryptedMessage = vigenere_encrypt(message, key, m);
-    return decryptedMessage;
-}
-
 char* decrypt_key(char *key, int m) {
     int i;
 
@@ -173,7 +162,7 @@ int main (int argc, char *argv[]) {
     }
 
     // Inicializamos el buffer del mensaje a leer con la longitud de la clave
-    message = (char *) malloc ((keyLength + 1) * sizeof(char));
+    message = (char *) calloc ((keyLength + 1), sizeof(char));
     if (message == NULL) {
         printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 
@@ -208,29 +197,15 @@ int main (int argc, char *argv[]) {
             continue;
         } else readChars = 0;
 
-        if (modo == 0) {
-            // Ciframos el mensaje
-            convertedMsg = vigenere_encrypt(message, k, m);
-            if (convertedMsg == NULL) {
-                printf("Error: No se ha podido cifrar el mensaje %s\n", message);
+        // Ciframos/Desciframos el mensaje
+        convertedMsg = vigenere_encrypt(message, k, m);
+        if (convertedMsg == NULL) {
+            printf("Error: No se ha podido convertir el mensaje %s\n", message);
 
-                free(message);
-                destroy_alphabet();
-                close_files(input, output);
-                return -1;
-            }
-
-        } else {
-            // Desciframos el mensaje
-            convertedMsg = vigenere_decrypt(message, k, m);
-            if (convertedMsg == NULL) {
-                printf("Error: No se ha podido descifrar el mensaje %s\n", message);
-
-                free(message);
-                destroy_alphabet();
-                close_files(input, output);
-                return -1;
-            }
+            free(message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
         }
 
         // Mostramos el mensaje convertido
