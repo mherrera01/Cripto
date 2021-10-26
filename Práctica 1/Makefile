@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs afin hill vigenere flujo permutacion
+all: clean createDirs afin hill vigenere flujo permutacion IC
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -36,8 +36,13 @@ flujo: $(OBJDIR)/flujo.o $(OBJDIR)/alphabet.o
 
 permutacion: $(OBJDIR)/permutacion.o $(OBJDIR)/alphabet.o $(OBJDIR)/matrixMN.o $(OBJDIR)/padding.o
 	@echo Compiling permutacion...
-	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Permutacion compilation completed
+
+IC: $(OBJDIR)/IC.o $(OBJDIR)/alphabet.o $(OBJDIR)/coincidencia.o
+	@echo Compiling IC...
+	@$(CC) $(CFLAGS) -o$@ $^ -lm
+	@echo IC compilation completed
 
 $(OBJDIR)/afin.o: src/afin.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -52,6 +57,9 @@ $(OBJDIR)/flujo.o: src/flujo.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/permutacion.o: src/permutacion.c includes/alphabet.h includes/matrixMN.h includes/padding.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/IC.o: src/IC.c includes/coincidencia.h includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -69,8 +77,11 @@ $(OBJDIR)/matrixMN.o: srclib/matrixMN.c includes/matrixMN.h
 $(OBJDIR)/padding.o: srclib/padding.c includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/coincidencia.o: srclib/coincidencia.c includes/coincidencia.h includes/alphabet.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	@rm -rf $(OBJDIR) afin hill vigenere flujo permutacion
+	@rm -rf $(OBJDIR) afin hill vigenere flujo permutacion IC
 	@echo Project cleaned
 
 # Valgrind rules

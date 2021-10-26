@@ -1,12 +1,7 @@
-'''
 print("Which file should be converted to capital letters only?")
 filename = input()
 print("How should be the new file named?")
 newFilename = input()
-'''
-
-filename = "el_quijote.txt"
-newFilename = "test2.txt"
 
 allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

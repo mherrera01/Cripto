@@ -220,7 +220,7 @@ int main (int argc, char *argv[]) {
     }
 
     // Cargamos el alfabeto del archivo alphabet/alphabet.txt
-    loadAlphabetN = load_alphabet(mpz_get_si(n));
+    loadAlphabetN = load_alphabet("alphabet/alphabet.txt", mpz_get_si(n));
     if (loadAlphabetN == -1) {
         printf("Error: El alfabeto no se pudo cargar.\n");
 

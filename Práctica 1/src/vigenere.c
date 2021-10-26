@@ -144,7 +144,7 @@ int main (int argc, char *argv[]) {
     }
 
     // Cargamos el alfabeto del archivo alphabet/alphabet.txt
-    if ((m = load_alphabet(m)) == -1) {
+    if ((m = load_alphabet("alphabet/alphabet.txt", m)) == -1) {
         printf("Error: El alfabeto no se pudo cargar.\n");
 
         close_files(input, output);
