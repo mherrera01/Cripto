@@ -103,7 +103,7 @@ void close_files (FILE *k, FILE *input, FILE *output) {
 }
 
 int main (int argc, char *argv[]) {
-    int i, endRead = 0, readChars = 0, blockSize = 0, m = 0, n = 0;
+    int i, endRead = 0, endReadStdin = 0, readChars = 0, blockSize = 0, m = 0, n = 0;
     char *convertToLong, *convertedMsg = NULL, *message = NULL;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *k = NULL, *input = stdin, *output = stdout;
@@ -246,10 +246,28 @@ int main (int argc, char *argv[]) {
     }
 
     // Leemos el mensaje a cifrar/descifrar
-    while (fgets(message + readChars, (blockSize - readChars + 1), input) != NULL) {
+    while (!endRead && !endReadStdin) {
+        if (fgets(message + readChars, (blockSize - readChars + 1), input) == NULL) {
+            // Error al leer el mensaje
+            if (ferror(input)) {
+                printf("Error: No se ha podido leer el mensaje del archivo.\n");
+
+                free_mem(matr, inverse, message);
+                destroy_alphabet();
+                close_files(k, input, output);
+                return -1;
+            } else {
+                // End of File
+                endRead = 1;
+
+                // Si no queda ningún mensaje en el buffer
+                if (message[0] == '\0') break;
+            }
+        }
+
         // Si la entrada es stdin en el salto de línea dejamos de leer
-        endRead = (input == stdin) && (strchr(message, '\n') != NULL);
-        if (endRead) message[strcspn(message, "\n")] = '\0';
+        endReadStdin = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endReadStdin) message[strcspn(message, "\n")] = '\0';
 
         /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
         leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
@@ -294,9 +312,6 @@ int main (int argc, char *argv[]) {
 
         // Limpiamos el buffer del mensaje
         memset(message, 0, blockSize + 1);
-
-        // Salir del bucle en stdin
-        if (endRead) break;
     }
 
     if (output == stdout) fprintf(output, "\n");

@@ -34,7 +34,7 @@ flujo: $(OBJDIR)/flujo.o $(OBJDIR)/alphabet.o
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Flujo compilation completed
 
-permutacion: $(OBJDIR)/permutacion.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o $(OBJDIR)/matrix.o $(OBJDIR)/padding.o
+permutacion: $(OBJDIR)/permutacion.o $(OBJDIR)/alphabet.o $(OBJDIR)/matrixMN.o $(OBJDIR)/padding.o
 	@echo Compiling permutacion...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Permutacion compilation completed
@@ -51,7 +51,7 @@ $(OBJDIR)/vigenere.o: src/vigenere.c includes/alphabet.h
 $(OBJDIR)/flujo.o: src/flujo.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/permutacion.o: src/permutacion.c includes/alphabet.h includes/matrix.h includes/padding.h
+$(OBJDIR)/permutacion.o: src/permutacion.c includes/alphabet.h includes/matrixMN.h includes/padding.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -61,6 +61,9 @@ $(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/matrix.o: srclib/matrix.c includes/matrix.h includes/euclides.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/matrixMN.o: srclib/matrixMN.c includes/matrixMN.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/padding.o: srclib/padding.c includes/padding.h
