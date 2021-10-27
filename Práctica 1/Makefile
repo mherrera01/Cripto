@@ -116,3 +116,7 @@ runv_permutacion:
 runv_IC:
 	@echo Debugging IC with valgrind...
 	@valgrind --leak-check=full ./IC -i testfiles/cifrado_vigenere.txt
+
+runv_kasiski:
+	@echo Debugging kasiski with valgrind...
+	@valgrind --leak-check=full ./kasiski -s 6 -i testfiles/cifrado_vigenere.txt

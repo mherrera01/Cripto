@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
     if (output == stdout) fprintf(output, "OK: El tamaño de la clave es %d.\n", keyLength);
     if (output == stdout) fprintf(output, "La clave es: ");
 
-    // Mostramos en pantalla (o en el archivo de outuput) la clave obtenida letra a letra para cada subgrupo.
+    // Mostramos en el output la clave obtenida letra a letra para cada subgrupo
     for (i = 0; i < keyLength; i++) {
         fprintf(output, "%c", get_caesar_key(subStrings[i]));
     }

@@ -4,8 +4,7 @@
 #include "../includes/coincidencia.h"
 #include "../includes/alphabet.h"
 
-#define MINIMUM_COINCIDENCE_SIZE 6
-#define MAX_KEY_SIZE 100
+#define MINIMUM_COINCIDENCE_SIZE 3
 #define MAX_TEXT_SIZE 1000000
 
 int calculate_mcd(int a, int b) {
@@ -14,33 +13,51 @@ int calculate_mcd(int a, int b) {
     return calculate_mcd(b, a%b); // Obtenemos el módulo de la división de a y b
 }
 
-char* get_repeated_string(char* cipherText) {
-    int i, j, k, len, coincidence;
+char* get_repeated_string(char* cipherText, int coincidenceSize) {
+    int i, j, k, x, len, coincidence, nWords = 0, inList;
     char* keyword = NULL;
 
     // Control de errores
-    if (cipherText == NULL) return NULL;
+    if (cipherText == NULL || coincidenceSize < MINIMUM_COINCIDENCE_SIZE) return NULL;
 
     // Obtenemos la longitud del texto cifrado
     len = strlen(cipherText);
-    if (len <= 2*MINIMUM_COINCIDENCE_SIZE) {
+    if (len <= 2*coincidenceSize) {
         return NULL;
     }
 
+    // Lista de palabras repetidas
+    char repeatedWords[100][coincidenceSize];
+
     // Reservamos memoria para la palabra repetida
-    keyword = (char *) calloc (MINIMUM_COINCIDENCE_SIZE + 1, sizeof(char));
+    keyword = (char *) calloc (coincidenceSize + 1, sizeof(char));
     if (keyword == NULL) return NULL;
 
-    for (i = MINIMUM_COINCIDENCE_SIZE; i < len; i++) {
+    for (i = coincidenceSize; i < len; i++) {
         coincidence = 0;
-        for (j = 0; j < len-MINIMUM_COINCIDENCE_SIZE; j++) {
+        for (j = 0; j < len-coincidenceSize; j++) {
             if (cipherText[j] == cipherText[j+i]) {
                 coincidence++;
-                if (coincidence == MINIMUM_COINCIDENCE_SIZE) {
-                    for (k = j - MINIMUM_COINCIDENCE_SIZE; k < j; k++) {
-                        keyword[k+MINIMUM_COINCIDENCE_SIZE-j] = cipherText[k+1];
+                if (coincidence == coincidenceSize) {
+                    // Guardamos la palabra repetida
+                    for (k = j - coincidenceSize; k < j; k++) {
+                        keyword[k+coincidenceSize-j] = cipherText[k+1];
+                        repeatedWords[nWords][k+coincidenceSize-j] = cipherText[k+1];
                     }
-                    break;
+
+                    // Comprobamos si la palabra ya está en la lista
+                    for (k = 0; k < nWords; k++) {
+                        inList = 0;
+                        for (x = 0; x < coincidenceSize; x++) {
+                            if (repeatedWords[k][x] == keyword[x]) {
+                                inList++;
+                            }
+                        }
+                        // La palabra está en la lista por lo que al menos se ha repetido tres veces
+                        if (inList == coincidenceSize) return keyword;
+                    }
+
+                    nWords++;
                 }
             } else {
                 coincidence = 0;
@@ -48,7 +65,8 @@ char* get_repeated_string(char* cipherText) {
         }
     }
 
-    return keyword;
+    // No se ha encontrado la palabra repetida al menos tres veces
+    return NULL;
 }
 
 int *get_index_in_string(char* string, char* substring, int *wordIndexSize) {
@@ -96,11 +114,18 @@ int *get_index_in_string(char* string, char* substring, int *wordIndexSize) {
 // Imprime en pantalla el uso de los comandos del programa
 void print_help() {
     printf("--------------------------\n");
-    printf("./kasiski [-i filein] [-o fileout]\n");
+    printf("./kasiski [-s coincidenceSize] [-i filein] [-o fileout]\n");
     printf("Siendo los parámetros:\n");
+    printf("-s longitud de la cadena que se quiere buscar repetida\n");
     printf("-i fichero de entrada\n");
     printf("-o fichero de salida\n");
     printf("---------------------------\n");
+}
+
+// Libera la memoria inicializada
+void free_mem (char *repeatedString, int *indexes) {
+    if (repeatedString != NULL) free(repeatedString);
+    if (indexes != NULL) free(indexes);
 }
 
 // Cerramos los archivos de entrada y salida abiertos previamente
@@ -113,22 +138,43 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main(int argc, char *argv[]) {
-    char cipherText[MAX_TEXT_SIZE] = {0}, *repeatedString = NULL;
-    int i, mcd, m, *indexes = NULL, indexesSize;
+    char cipherText[MAX_TEXT_SIZE] = {0}, *convertToLong, *repeatedString = NULL, **subStrings = NULL;
+    int i, keyLength, m, *indexes = NULL, indexesSize, coincidenceSize = MINIMUM_COINCIDENCE_SIZE;
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
-    if (argc < 1 || argc > 5) {
+    if (argc < 1 || argc > 7) {
         printf("Error: Número incorrecto de parámetros.\n");
         print_help();
         return -1;
     }
 
     // Obtener parámetros del usuario
-    // kasiski [-i filein] [-o fileout]
+    // kasiski [-s coincidenceSize] [-i filein] [-o fileout]
     for (i = 1; i < argc; i++) {
+        // Parámetro adicional
+        if (strcmp(argv[i], "-s") == 0) {
+            // Longitud de la cadena que se quiere buscar repetida
+            coincidenceSize = (int) strtol(argv[++i], &convertToLong, 10);
+
+            // Comprobamos si no se ha convertido ningún caracter
+            if (argv[i] == convertToLong) {
+                printf("Error: El parámetro -s %s no es válido.\n", argv[i]);
+
+                close_files(input, output);
+                return -1;
+            }
+
+            // Comprobamos si la longitud de la cadena es demasiado corta
+            if (coincidenceSize < MINIMUM_COINCIDENCE_SIZE) {
+                printf("Error: La longitud de la cadena que se quiere buscar repetida no puede ser menor que %d.\n", MINIMUM_COINCIDENCE_SIZE);
+
+                close_files(input, output);
+                return -1;
+            }
+
         // Parámetros de ficheros entrada/salida. Por defecto stdin y stdout
-        if (strcmp(argv[i], "-i") == 0) {
+        } else if (strcmp(argv[i], "-i") == 0) {
             // Abrimos fichero de entrada
             input = fopen(argv[++i], "r");
             if (input == NULL) {
@@ -182,40 +228,76 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    repeatedString = get_repeated_string(cipherText);
+    if (output == stdout) fprintf(output, "OK: Mensaje cifrado leído.\n");
+    if (output == stdout) fprintf(output, "Calculando tamaño de la clave...\n");
+
+    // Obtenemos una subcadena de texto que se repite en el texto cifrado
+    repeatedString = get_repeated_string(cipherText, coincidenceSize);
     if (repeatedString == NULL) {
+        printf("Error: No se ha podido obtener una subcadena de texto que se repite en el texto cifrado.\n");
+
+        free_mem(repeatedString, indexes);
+        destroy_alphabet();
+        close_files(input, output);
         return -1;
     }
 
-    printf("%s\n", repeatedString);
-
+    // Obtenemos los índices donde se encuentra la subcadena de texto repetida
     indexes = get_index_in_string(cipherText, repeatedString, &indexesSize);
-    if (indexes == NULL) {
-        free(repeatedString);
+
+    // Comprobamos si hay suficientes repeticiones de la subcadena para hacer kasiski o ha habido algún error
+    if (indexes == NULL || indexesSize < 3) {
+        printf("Error: No se han podido obtener los índices de la subcadena de texto repetida.\n");
+
+        free_mem(repeatedString, indexes);
+        destroy_alphabet();
+        close_files(input, output);
         return -1;
     }
 
-    if (indexesSize < 3) {
-        free(repeatedString);
-        free(indexes);
-        return -1;
-    }
-
+    // Calculamos la diferencia entre los índices
     for (i = 1; i < indexesSize; i++){
         indexes[i] -= indexes[0];
     }
 
-    mcd = indexes[1];
-
+    // Calculamos el máximo común divisor de los índices que será el tamaño de la clave
+    keyLength = indexes[1];
     for (i = 2; i < indexesSize; i++){
-        mcd = calculate_mcd(indexes[i], mcd);
+        keyLength = calculate_mcd(indexes[i], keyLength);
     }
 
-    printf("MCD: %d\n", mcd);
+    // Tamaño de clave encontrado
+    if (output == stdout) fprintf(output, "OK: El tamaño de la clave es %d.\n", keyLength);
+
+    // Dividimos la cadena de texto por el tamaño de la clave
+    subStrings = divide_strings(cipherText, keyLength);
+    if (subStrings == NULL) {
+        printf("Error: No se ha podido dividir la cadena de texto por el tamaño de clave %d.\n", keyLength);
+
+        free_mem(repeatedString, indexes);
+        destroy_alphabet();
+        close_files(input, output);
+        return -1;
+    }
+
+    if (output == stdout) fprintf(output, "La clave es: ");
+
+    // Mostramos en el output la clave obtenida letra a letra para cada subgrupo
+    for (i = 0; i < keyLength; i++) {
+        fprintf(output, "%c", get_caesar_key(subStrings[i]));
+    }
+
+    if (output == stdout) fprintf(output, "\n");
 
     // Liberamos memoria
-    free(indexes);
-    free(repeatedString);
+    free_substrings(subStrings, keyLength);
+    free_mem(repeatedString, indexes);
+
+    // Liberamos alfabeto
+    destroy_alphabet();
+
+    // Cerramos los archivos si no son stdin/stdout
+    close_files(input, output);
 
     return 0;
 }
