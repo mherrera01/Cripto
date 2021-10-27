@@ -61,17 +61,12 @@ char** divide_strings(char* string, int keyLength) {
     return substrings;
 }
 
-char get_caesar_key(char* string) {
-    int i, j, ret;
-    int* frequency = NULL;
+int calculate_key(char *string, int *frequency) {
+    int i, j, key;
     double frequencyDouble = 0.0, maxFrequency = 0.0;
 
     // Control de errores
-    if (string == NULL) return '_';
-
-    // Reservamos memoria para la tabla de frecuencia de la cadena de texto
-    frequency = (int*) calloc (COINCIDENCE_ALPHABET_SIZE, sizeof(int));
-    if (frequency == NULL) return '_';
+    if (string == NULL || frequency == NULL) return -1;
 
     // Obtenemos la frecuencia de cada letra del alfabeto en la cadena de texto
     for (i = 0; i < strlen(string); i++) {
@@ -94,70 +89,65 @@ char get_caesar_key(char* string) {
     }
 
     // La letra con mayor frecuencia en el inglés y en el castellano es la E
-    ret = j - get_letter_code('E');
-    if (ret < 0) ret += COINCIDENCE_ALPHABET_SIZE;
+    key = get_letter_code('E');
+    if (key == -1) return -1;
+
+    key = j - key;
+    if (key < 0) key += COINCIDENCE_ALPHABET_SIZE;
+
+    return key;
+}
+
+char get_caesar_key(char* string) {
+    int key, *frequency = NULL;
+
+    // Control de errores
+    if (string == NULL) return '_';
+
+    // Reservamos memoria para la tabla de frecuencia de la cadena de texto
+    frequency = (int*) calloc (COINCIDENCE_ALPHABET_SIZE, sizeof(int));
+    if (frequency == NULL) return '_';
+
+    // Calculamos la clave
+    key = calculate_key(string, frequency);
 
     // Liberamos memoria
     free(frequency);
 
-    return get_letter(ret);
+    return get_letter(key);
 }
 
-int binomial_coefficient(int n, int k) {
-    // Casos base
-    if (k > n) return 0;
-    if (k == 0 || k == n) return 1;
- 
-    // Aplicamos recursividad para los factoriales
-    return binomial_coefficient(n - 1, k - 1) + binomial_coefficient(n - 1, k);
-}
-
-double check_key_length(char* string, int keyLength) {
-    int i, j, ret, indiceCifrado;
+double check_key_length_IC(char* string, int keyLength, int language) {
+    int i, key, cipherIndex;
     int* frequency = NULL;
-    double frequencyDouble = 0.0, maxFrequency = 0.0, deviation = 0.0;
+    double frequencyDouble = 0.0, deviation = 0.0;
 
     // Control de errores
     if (string == NULL || keyLength <= 0) return -1;
+    if (language != 0 && language != 1) return -1;
 
     // Reservamos memoria para la tabla de frecuencia de la cadena de texto
     frequency = (int*) calloc (COINCIDENCE_ALPHABET_SIZE, sizeof(int));
     if (frequency == NULL) return -1;
 
-    // Obtenemos la frecuencia de cada letra del alfabeto en la cadena de texto
-    for (i = 0; i < strlen(string); i++) {
-        for (j = 0; j < COINCIDENCE_ALPHABET_SIZE; j++) {
-            if (string[i] == get_letter(j)) {
-                frequency[j]++;
-                break;
-            }
-        }
+    // Calculamos la clave
+    key = calculate_key(string, frequency);
+    // Error calculando la clave
+    if (key == -1) {
+        free(frequency);
+        return 0.0;
     }
-
-    // Obtenemos la letra con mayor frecuencia
-    for (i = 0; i < COINCIDENCE_ALPHABET_SIZE; i++) {
-        // Calculamos la frecuencia de cada letra
-        frequencyDouble = (double) frequency[i]/strlen(string);
-
-        if (maxFrequency < frequencyDouble){
-            maxFrequency = frequencyDouble;
-            j = i;
-        }
-    }
-
-    // Usaremos la E para obtener el resto de frecuencias
-    ret = j - get_letter_code('E');
-    if (ret < 0) ret += COINCIDENCE_ALPHABET_SIZE;
 
     // Obtenemos la desviación total de cada letra
     for (i = 0; i < COINCIDENCE_ALPHABET_SIZE; i++) {
         // Calculamos la frecuencia de cada letra
-        frequencyDouble = (100.0*frequency[i])/strlen(string);
+        frequencyDouble = (double) frequency[i]/strlen(string);
 
-        indiceCifrado = (i-ret >= 0 ? i-ret : i-ret+COINCIDENCE_ALPHABET_SIZE);
+        cipherIndex = (i-key >= 0 ? i-key : i-key+COINCIDENCE_ALPHABET_SIZE);
 
-        // Calculamos el sumatorio de la probabilidad de cada letra (coeficiente binomial) elevado al cuadrado
-        deviation += pow(binomial_coefficient(frequencyDouble-ENG[indiceCifrado], 2), 2.0);
+        // Calculamos el sumatorio de la probabilidad de que la letra xi del inglés coincida con la letra yi del mensaje cifrado.
+        // Al ser x(A) la probabilidad de un caracter aleatorio de la cadena sea A en inglés e y(A) la probabilidad de que lo sea en el mensaje.
+        deviation += frequencyDouble*((language ? ESP[cipherIndex] : ENG[cipherIndex])/100.0);
     }
 
     // Liberamos memoria

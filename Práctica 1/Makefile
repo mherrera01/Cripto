@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs afin hill vigenere flujo permutacion IC
+all: clean createDirs afin hill vigenere flujo permutacion IC kasiski
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -44,6 +44,11 @@ IC: $(OBJDIR)/IC.o $(OBJDIR)/alphabet.o $(OBJDIR)/coincidencia.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lm
 	@echo IC compilation completed
 
+kasiski: $(OBJDIR)/kasiski.o $(OBJDIR)/alphabet.o $(OBJDIR)/coincidencia.o
+	@echo Compiling kasiski...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo Kasiski compilation completed
+
 $(OBJDIR)/afin.o: src/afin.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -60,6 +65,9 @@ $(OBJDIR)/permutacion.o: src/permutacion.c includes/alphabet.h includes/matrixMN
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/IC.o: src/IC.c includes/coincidencia.h includes/alphabet.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/kasiski.o: src/kasiski.c includes/coincidencia.h includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -81,7 +89,7 @@ $(OBJDIR)/coincidencia.o: srclib/coincidencia.c includes/coincidencia.h includes
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) afin hill vigenere flujo permutacion IC
+	@rm -rf $(OBJDIR) afin hill vigenere flujo permutacion IC kasiski
 	@echo Project cleaned
 
 # Valgrind rules
@@ -104,3 +112,7 @@ runv_flujo:
 runv_permutacion:
 	@echo Debugging permutacion with valgrind...
 	@valgrind --leak-check=full ./permutacion -C -k1 0,2,3,1 -k2 2,1,3,0
+
+runv_IC:
+	@echo Debugging IC with valgrind...
+	@valgrind --leak-check=full ./IC -i testfiles/cifrado_vigenere.txt
