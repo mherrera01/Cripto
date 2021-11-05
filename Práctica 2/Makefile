@@ -14,12 +14,18 @@ all: clean createDirs seg-perf
 createDirs:
 	@mkdir -p $(OBJDIR)
 
-seg-perf: $(OBJDIR)/seg-perf.o
+seg-perf: $(OBJDIR)/seg-perf.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o
 	@echo Compiling seg-perf...
-	@$(CC) $(CFLAGS) -o$@ $^
+	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Seg-perf compilation completed
 
-$(OBJDIR)/seg-perf.o: src/seg-perf.c
+$(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
