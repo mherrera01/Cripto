@@ -49,14 +49,14 @@ int get_affine_keys(int* a, int* b, int m, int modo) {
     while (get_modular_intverse(*a, m) < 1) {
         *a = rand() % m;
         if (modo == 1) {
-            *a = *a % 3;
+            *a = *a / 3;
         }
     }
 
     // Generamos una variable b igual que la a, pero sin la necesidad de que tenga inverso en m, ya que no o necesita
     *b = rand() % m;
     if (modo == 1) {
-        *b = *b % 3;
+        *b = *b / 10;
     }
 
     return 0;
