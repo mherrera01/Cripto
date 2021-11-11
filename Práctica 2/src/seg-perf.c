@@ -75,6 +75,26 @@ void print_help() {
     printf("---------------------------\n");
 }
 
+// Libera la memoria inicializada
+void free_mem (int **probabilityTable, int tableSize, int *probabilityInPlaintext, int *probabilityInCiphertext, char *message) {
+    int i;
+
+    if (probabilityTable != NULL) {
+        // Liberamos cada puntero de la tabla de probabilidades
+        for (i = 0; i < tableSize; i++) {
+            if (probabilityTable[i] != NULL) {
+                free(probabilityTable[i]);
+            }
+        }
+
+        free(probabilityTable);
+    }
+
+    if (probabilityInPlaintext != NULL) free(probabilityInPlaintext);
+    if (probabilityInCiphertext != NULL) free(probabilityInCiphertext);
+    if (message != NULL) free(message);
+}
+
 // Cerramos los archivos de entrada y salida abiertos previamente
 void close_files (FILE *input, FILE *output) {
     if (input == NULL || output == NULL) return;
@@ -85,12 +105,12 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main (int argc, char *argv[]) {
-    int i, j, endRead = 0, readChars = 0, a = 0, b = 0, m = DEFAULT_ALPHABET_SIZE;
+    int i, j, a = 0, b = 0, m = DEFAULT_ALPHABET_SIZE;
+    int messageLength = 0, readChars = 0, endRead = 0, endReadStdin = 0;
     int modo = 0; // modo en 0 para método equiprobable y 1 para no equiprobable
     FILE *input = stdin, *output = stdout;
-    char *convertToLong, *message = NULL;
-    char encryptedCharacter;
-    int **probabilityTable = NULL, *probabilityInPlaintext = NULL, *probabilityInCyphertext = NULL;
+    char encryptedCharacter, *convertToLong, *message = NULL;
+    int **probabilityTable = NULL, *probabilityInPlaintext = NULL, *probabilityInCiphertext = NULL;
 
     // Comprobar número de argumentos del usuario
     if (argc < 2 || argc > 8) {
@@ -161,6 +181,41 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
+    // Inicializamos memoria para la tabla de probabilidades
+    probabilityTable = (int**) malloc (m * sizeof(int*));
+    if (probabilityTable == NULL) {
+        printf("Error: No se ha podido inicializar la memoria de la tabla de probabilidades.\n");
+
+        destroy_alphabet();
+        close_files(input, output);
+        return -1;
+    }
+
+    // Inicializamos memoria para los array de la tabla de probabilidades
+    for (i = 0; i < m; i++) {
+        probabilityTable[i] = (int*) calloc (m, sizeof(int));
+        if (probabilityTable[i] == NULL) {
+            printf("Error: No se ha podido inicializar la memoria de los array en la tabla de probabilidades.\n");
+
+            free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
+            destroy_alphabet();
+            close_files(input, output);
+            return -1;
+        }
+    }
+
+    // Inicializamos memoria para las probabilidades de cada letra en el alfabeto
+    probabilityInPlaintext = (int*) calloc (m, sizeof(int));
+    probabilityInCiphertext = (int*) calloc (m, sizeof(int));
+    if (probabilityInPlaintext == NULL || probabilityInCiphertext == NULL) {
+        printf("Error: No se ha podido inicializar la memoria para las probabilidades de cada letra en el alfabeto.\n");
+
+        free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
+        destroy_alphabet();
+        close_files(input, output);
+        return -1;
+    }
+
     // Utilizamos srand para tener números aleatorios en cada ejecución del programa
     srand(time(NULL));
 
@@ -169,103 +224,85 @@ int main (int argc, char *argv[]) {
     if (message == NULL) {
         printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 
+        free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
         destroy_alphabet();
         close_files(input, output);
         return -1;
     }
 
-    probabilityTable = (int**) malloc (m*sizeof(int*));
-    for(i = 0; i < m; i++){
-        probabilityTable[i] = NULL;
-        probabilityTable[i] = (int*) calloc (m, sizeof(int));
-    }
-    // FALTA METER MÁS CONTROL DE ERRORES, PERO YA LO HARÉ CUANDO EL PROGRAMA FUNCIONE.
-    if(probabilityTable == NULL){
-        printf("Error: No se ha podido inicializar la memoria de la tabla de probabilidades.\n");
+    // Leemos el mensaje a cifrar
+    while (!endRead && !endReadStdin) {
+        if (fgets(message + readChars, (MAX_MESSAGE_SIZE - readChars + 1), input) == NULL) {
+            // Error al leer el mensaje
+            if (ferror(input)) {
+                printf("Error: No se ha podido leer el mensaje del archivo.\n");
 
-        destroy_alphabet();
-        close_files(input, output);
-        free(message);
-    }
+                free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
+                destroy_alphabet();
+                close_files(input, output);
+                return -1;
+            } else {
+                // End of File
+                endRead = 1;
 
-    // FALTA CONTROL DE ERRORES.
-    probabilityInPlaintext = (int*) calloc (m, sizeof(int));
-    probabilityInCyphertext = (int*) calloc (m, sizeof(int));
-
-    // Leemos el mensaje a cifrar/descifrar
-    while (1) {
-        // Leemos en stdin con fgets para terminar en un salto de línea
-        if (input == stdin) {
-            if (fgets(message, (MAX_MESSAGE_SIZE + 1), input) == NULL) break;
-
-            // En el salto de línea dejamos de leer
-            endRead = (strchr(message, '\n') != NULL);
-            if (endRead) message[strcspn(message, "\n")] = '\0';
-
-            readChars = strlen(message);
-
-        // Leemos archivos binarios con fread
-        } else {
-            readChars = fread(message, sizeof(char), MAX_MESSAGE_SIZE, input);
-            if (readChars <= 0) break;
+                // Si no queda ningún mensaje en el buffer
+                if (message[0] == '\0') break;
+            }
         }
 
+        // Si la entrada es stdin en el salto de línea dejamos de leer
+        endReadStdin = (input == stdin) && (strchr(message, '\n') != NULL);
+        if (endReadStdin) message[strcspn(message, "\n")] = '\0';
+
+        /* Como fgets deja de leer cuando encuentra un salto de línea, continuamos
+        leyendo hasta rellenar el bloque del mensaje si la entrada no es stdin */
+        if (!(input == stdin) && strchr(message, '\n') != NULL) {
+            readChars = strcspn(message, "\n") + 1; // Asignamos por donde debemos seguir leyendo
+            message[readChars - 1] = ' '; // Sustituimos el salto de línea por un espacio
+            continue;
+        } else readChars = 0;
+
         // Ciframos caracter a caracter con el cifrado afin
-        for (i = 0; i < readChars; i++) {
+        for (i = 0; i < strlen(message); i++) {
             if (get_affine_keys(&a, &b, m, modo) == -1) {
                 printf("Error: No se han podido crear las claves.\n");
 
-                free(message);
+                free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
                 destroy_alphabet();
                 close_files(input, output);
                 return -1;
             }
             encryptedCharacter = affine_encrypt_char(message[i], a, b, m);
-            fprintf(output, "%c", encryptedCharacter);
 
-            //Registramos el dato en la tabla para hayar la probabilidad después.
-            if(get_letter_code(encryptedCharacter) != -1 && get_letter_code(message[i]) != -1){
+            // Registramos el dato en la tabla para hallar la probabilidad después.
+            if (get_letter_code(encryptedCharacter) != -1 && get_letter_code(message[i]) != -1) {
                 probabilityTable[get_letter_code(message[i])][get_letter_code(encryptedCharacter)]++;
+                messageLength++;
             }
         }
 
         // Limpiamos el buffer del mensaje
         memset(message, 0, MAX_MESSAGE_SIZE + 1);
-
-        // Salir del bucle en stdin
-        if (endRead) break;
     }
 
     if (output == stdout) fprintf(output, "\n");
 
-    for(i = 0; i < m; i++){
-        for(j = 0; j < m; j++){
+    for (i = 0; i < m; i++){
+        for (j = 0; j < m; j++){
             probabilityInPlaintext[i] += probabilityTable[i][j];
-        }
-        printf("%c aparece %d veces en el texto plano.\n", get_letter(i), probabilityInPlaintext[i]);
-    }
-
-    printf("------------------------------------\n");
-
-    for(i = 0; i < m; i++){
-        for(j = 0; j < m; j++){
-            probabilityInCyphertext[i] += probabilityTable[j][i];
-        }
-        printf("%c aparece %d veces en el texto cifrado.\n", get_letter(i), probabilityInCyphertext[i]);
-    }
-
-    printf("------------------------------------\n");
-
-    
-    for(i = 0; i < m; i++){
-        for(j = 0; j < m; j++){
-            printf("P(%c|%c) = %lf .\n", get_letter(i), probabilityInCyphertext[i]);
+            probabilityInCiphertext[i] += probabilityTable[j][i];
         }
     }
 
+    for (i = 0; i < m; i++) {
+        fprintf(output, "\nP(%c) = %lf\n", get_letter(i), ((double)probabilityInPlaintext[i])/messageLength);
+        for (j = 0; j < m; j++) {
+            fprintf(output, "P(%c|%c) = %lf\t", get_letter(i), get_letter(j), ((double)probabilityTable[i][j])/probabilityInCiphertext[i]);
+        }
+    }
 
     // Liberamos memoria
-    free(message);
+    free_mem(probabilityTable, m, probabilityInPlaintext, probabilityInCiphertext, message);
 
     // Liberamos alfabeto
     destroy_alphabet();
