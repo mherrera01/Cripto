@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs seg-perf
+all: clean createDirs seg-perf desCFB
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -19,7 +19,15 @@ seg-perf: $(OBJDIR)/seg-perf.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Seg-perf compilation completed
 
+desCFB: $(OBJDIR)/desCFB.o $(OBJDIR)/alphabet.o $(OBJDIR)/byte.o
+	@echo Compiling desCFB...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo DesCFB compilation completed
+
 $(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/desCFB.o: src/desCFB.c includes/alphabet.h includes/byte.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -28,11 +36,18 @@ $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
 $(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/byte.o: srclib/byte.c includes/byte.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	@rm -rf $(OBJDIR) seg-perf
+	@rm -rf $(OBJDIR) seg-perf desCFB
 	@echo Project cleaned
 
 # Valgrind rules
 runv_seg-perf:
 	@echo Debugging seg-perf with valgrind...
 	@valgrind --leak-check=full ./seg-perf -P
+
+runv_desCFB:
+	@echo Debugging desCFB with valgrind...
+	@valgrind --leak-check=full ./desCFB -C -S 32

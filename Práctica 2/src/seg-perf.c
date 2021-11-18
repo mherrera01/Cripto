@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) {
             }
             encryptedCharacter = affine_encrypt_char(message[i], a, b, m);
 
-            // Registramos el dato en la tabla para hallar la probabilidad después.
+            // Registramos el dato en la tabla para hallar la probabilidad después
             if (get_letter_code(encryptedCharacter) != -1 && get_letter_code(message[i]) != -1) {
                 probabilityTable[get_letter_code(message[i])][get_letter_code(encryptedCharacter)]++;
                 messageLength++;
@@ -285,8 +285,9 @@ int main (int argc, char *argv[]) {
         memset(message, 0, MAX_MESSAGE_SIZE + 1);
     }
 
-    if (output == stdout) fprintf(output, "\n");
+    if (output == stdout) fprintf(output, "\nCalculando las probabilidades de las letras...\n");
 
+    // Calculamos las probabilidades de cada letra en el texto plano y cifrado
     for (i = 0; i < m; i++){
         for (j = 0; j < m; j++){
             probabilityInPlaintext[i] += probabilityTable[i][j];
@@ -294,11 +295,16 @@ int main (int argc, char *argv[]) {
         }
     }
 
+    if (output == stdout) fprintf(output, "OK: Probabilidades de las letras calculadas.\n\n");
+
+    /* Calculamos e imprimimos las probabilidades de las letras en texto plano para compararlas con
+    las condicionadas por las letras cifradas */
     for (i = 0; i < m; i++) {
-        fprintf(output, "\nP(%c) = %lf\n", get_letter(i), ((double)probabilityInPlaintext[i])/messageLength);
+        fprintf(output, "P(%c) = %lf\n", get_letter(i), ((double)probabilityInPlaintext[i])/messageLength);
         for (j = 0; j < m; j++) {
             fprintf(output, "P(%c|%c) = %lf\t", get_letter(i), get_letter(j), ((double)probabilityTable[i][j])/probabilityInCiphertext[i]);
         }
+        fprintf(output, "\n");
     }
 
     // Liberamos memoria
