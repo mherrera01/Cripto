@@ -19,7 +19,7 @@ seg-perf: $(OBJDIR)/seg-perf.o $(OBJDIR)/alphabet.o $(OBJDIR)/euclides.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Seg-perf compilation completed
 
-desCFB: $(OBJDIR)/desCFB.o $(OBJDIR)/alphabet.o $(OBJDIR)/byte.o
+desCFB: $(OBJDIR)/desCFB.o $(OBJDIR)/alphabet.o $(OBJDIR)/byte.o $(OBJDIR)/byteArray.o $(OBJDIR)/des.o
 	@echo Compiling desCFB...
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo DesCFB compilation completed
@@ -27,13 +27,19 @@ desCFB: $(OBJDIR)/desCFB.o $(OBJDIR)/alphabet.o $(OBJDIR)/byte.o
 $(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/desCFB.o: src/desCFB.c includes/alphabet.h includes/byte.h
+$(OBJDIR)/desCFB.o: src/desCFB.c includes/alphabet.h includes/byte.h includes/byteArray.h includes/des.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/des.o: srclib/des.c includes/des.h includes/DES_tables.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/byteArray.o: srclib/byteArray.c includes/byteArray.h includes/byte.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/byte.o: srclib/byte.c includes/byte.h

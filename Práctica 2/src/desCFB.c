@@ -3,7 +3,8 @@
 #include <string.h>
 #include <time.h>
 #include "../includes/alphabet.h"
-#include "../includes/byte.h"
+#include "../includes/byteArray.h"
+#include "../includes/des.h"
 
 /*
 char** divideBlock(char* key){
@@ -56,7 +57,8 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main(int argc, char *argv[]) {
-    char *k, *convertToLong, *byte = NULL;
+    ByteArray *byteArray = NULL;
+    char *k, *convertToLong;
     int i, s = 0, m = DEFAULT_ALPHABET_SIZE;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
@@ -162,8 +164,8 @@ int main(int argc, char *argv[]) {
         // TODO
     }
 
-    byte = init_byte();
-    if (byte == NULL) {
+    byteArray = init_byteArray(8);
+    if (byteArray == NULL) {
         printf("Error: TODO.\n");
 
         destroy_alphabet();
@@ -171,14 +173,16 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    printf("%s = %d\n", byte, get_byte_value(byte));
+    print_byteArray(byteArray);
 
-    set_byte_to_value(63, byte);
+    if(set_byteArray_to_value(byteArray, 9999999999LL) == -1) return -1;
 
-    printf("%s = %d\n", byte,  get_byte_value(byte));
+    print_byteArray(byteArray);
+
+    printf("Valor del los bytes: %llu \n", get_byteArray_value(byteArray));
 
     // Liberamos memoria
-    free(byte);
+    destroy_byteArray(byteArray);
 
     // Liberamos alfabeto
     destroy_alphabet();

@@ -13,7 +13,7 @@
 #define COLUMNS_PER_SBOX 16
 
 
-/* "permutaci�n" PC1 */
+/* permutación PC1 */
 static const unsigned short PC1[BITS_IN_PC1] = { 
 	57, 49, 41, 33, 25, 17, 9,
 	1, 58, 50, 42, 34, 26, 18,
@@ -25,7 +25,7 @@ static const unsigned short PC1[BITS_IN_PC1] = {
 	21, 13, 5, 28, 20, 12, 4
 };
 
-/* "permutaci�n" PC2 */
+/* permutación PC2 */
 static const unsigned short PC2[BITS_IN_PC2] = {
 	14, 17, 11, 24, 1, 5,
 	3, 28, 15, 6, 21, 10,
@@ -37,12 +37,12 @@ static const unsigned short PC2[BITS_IN_PC2] = {
 	46, 42, 50, 36, 29, 32
 };
 
-/* n�mero de bits que hay que rotar cada semiclave seg�n el n�mero de ronda */
+/* número de bits que hay que rotar cada semiclave según el número de ronda */
 static const unsigned short ROUND_SHIFTS[ROUNDS] = {
 	1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1
 };
 
-/* permutaci�n IP */
+/* permutación IP */
 static const unsigned short IP[BITS_IN_IP] = {
 	58, 50, 42, 34, 26, 18, 10, 2,
 	60, 52, 44, 36, 28, 20, 12, 4,
@@ -66,7 +66,7 @@ static const unsigned short IP_INV[BITS_IN_IP] = {
 	33, 1, 41, 9, 49, 17, 57, 25
 };
 
-/* expansi�n E */
+/* expansión E */
 static const unsigned short E[BITS_IN_E] = {
 	32, 1, 2, 3, 4, 5,
 	4, 5, 6, 7, 8, 9,
@@ -78,7 +78,7 @@ static const unsigned short E[BITS_IN_E] = {
 	28, 29, 30, 31, 32, 1
 };
 
-/* permutaci�n P */
+/* permutación P */
 static const unsigned short P[BITS_IN_P] = {
 	16, 7, 20, 21,
 	29, 12, 28, 17,
