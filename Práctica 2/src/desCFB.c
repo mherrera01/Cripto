@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../includes/byteArray.h"
-#include "../includes/des.h"
+#include "../includes/bits.h"
+//#include "../includes/des.h"
 
 #define BLOCK_SIZE 8 // Número de bytes en los que se divide el texto a cifrar/descifrar
 
@@ -46,6 +46,7 @@ void print_help() {
     printf("---------------------------\n");
 }
 
+/*
 // Libera la memoria inicializada
 void free_mem (ByteArray *key, ByteArray *block, char *message) {
     if (key != NULL) destroy_byteArray(key);
@@ -61,6 +62,7 @@ void close_files (FILE *input, FILE *output) {
     if (input != stdin) fclose(input);
     if (output != stdout) fclose(output);
 }
+
 
 int main(int argc, char *argv[]) {
     ByteArray *key = NULL, *block = NULL;
@@ -240,4 +242,34 @@ int main(int argc, char *argv[]) {
     close_files(input, output);
 
     return 0;
+}
+*/
+
+int main(){
+    Bits *b1=NULL, *b2=NULL, *b3=NULL, *b4=NULL;
+
+    b1 = init_bits(64);
+
+    set_byte_to_value(b1, 0, 255);
+    set_byte_to_value(b1, 1, 63);
+    set_byte_to_value(b1, 2, 4);
+
+    printf("b1:\n");
+    print_bits(b1);
+
+    b2 = copy_bits(b1);
+
+    printf("b2 byte 1: %d\n", get_byte_value(b2, 1));
+    
+    split_bits(b2, 19, &b3, &b4);
+
+    printf("b3:\n");
+    print_bits(b3);
+    printf("b4:\n");
+    print_bits(b4);
+
+    destroy_bits(b1);
+    destroy_bits(b2); 
+    destroy_bits(b3); 
+    destroy_bits(b4);
 }
