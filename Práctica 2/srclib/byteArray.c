@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "../includes/byteArray.h"
 #include "../includes/byte.h"
 
@@ -63,21 +64,65 @@ ByteArray *init_byteArray(int size) {
     return byteArray;
 }
 
+// Setters -------------
+int set_byteArray_desKey_value(ByteArray *byteArray) {
+    int i;
+    unsigned char random;
+
+    // Control de errores.
+    if (byteArray == NULL || byteArray->bytes == NULL) return -1;
+
+    // Utilizamos srand para tener números aleatorios en cada ejecución del programa
+    srand(time(NULL));
+
+    for (i = 0; i < byteArray->size; i++) {
+        // Generamos un número positivo aleatorio de 7 bits
+        random = rand()%128;
+
+        // Asignamos el valor al byte
+        if (set_byte_desKey_value(byteArray->bytes[i], random) == -1) return -1;
+    }
+
+    return 0;
+}
+
 int set_byteArray_to_value(ByteArray *byteArray, unsigned long long value) {
-    int i, j;
+    int i;
 
     // Control de errores.
     if (byteArray == NULL || byteArray->bytes == NULL) return -1;
 
     // Para cada byte ponemos el valor de la variable value desplazada i bytes a la derecha.
     for (i = byteArray->size; i > 0; i--) {
-        if (byteArray->bytes[byteArray->size-i] == NULL) return -1;
-        set_byte_to_value(byteArray->bytes[byteArray->size-i], value>>(i-1)*BYTE_SIZE);
+        if (set_byte_to_value(byteArray->bytes[byteArray->size-i], value>>(i-1)*BYTE_SIZE) == -1) return -1;
     }
 
     return 0;
 }
 
+int set_byteArray_byte(ByteArray* byteArray, char* byte, int index) {
+    // Control de errores.
+    if(!byteArray || index < 0 || !byte) return -1;
+    if(byteArray->size <= index || byteArray->bytes == NULL) return -1;
+    
+    // Ponemos el mismo valor al byte del array que al byte.
+    set_byte_to_value(byteArray->bytes[index], get_byte_value(byte));
+
+    return 0;
+}
+
+int set_byteArray_byte_value(ByteArray* byteArray, unsigned char byteValue, int index) {
+    // Control de errores.
+    if(!byteArray || index < 0) return -1;
+    if(byteArray->size <= index || byteArray->bytes == NULL) return -1;
+    
+    // Ponemos el mismo valor al byte del array que al byte.
+    set_byte_to_value(byteArray->bytes[index], byteValue);
+
+    return 0;
+}
+
+// Getters -------------
 unsigned long long get_byteArray_value(ByteArray *byteArray) {
     int i;
     unsigned long long value = 0LL;
@@ -93,6 +138,64 @@ unsigned long long get_byteArray_value(ByteArray *byteArray) {
     }
 
     return value;
+}
+
+char* get_byteArray_byte(ByteArray* byteArray, int index) {
+    char* byte = NULL;
+
+    // Control de errores.
+    if(!byteArray || index < 0) return NULL;
+    if(byteArray->size <= index || byteArray->bytes == NULL) return NULL;
+
+    // Reservamos memoria para el byte a devolver.
+    byte = init_byte();
+    if(byte == NULL) return NULL;
+    
+    // Ponemos el mismo valor al byte generado del que tiene el byte del array.
+    set_byte_to_value(byte, get_byte_value(byteArray->bytes[index]));
+
+    return byte;
+}
+
+unsigned char get_byteArray_byte_value(ByteArray* byteArray, int index) {
+    // Control de errores.
+    if(!byteArray || index < 0) return 0;
+    if(byteArray->size <= index || byteArray->bytes == NULL) return 0;
+
+    return get_byte_value(byteArray->bytes[index]);
+}
+
+int get_byteArray_size(ByteArray* byteArray){
+    if(!byteArray) return -1;
+
+    return byteArray->size;
+}
+
+// Misceláneo ----------------
+int split_byteArray(ByteArray* original, int split, ByteArray* part1, ByteArray* part2){
+    int i;
+
+    // Control de errores. 
+    if(!original || split < 1) return -1;
+    if(!original->bytes || original->size <= split) return -1;
+
+    // Inicializamos la memoria de los sub arrays.
+    part1 = init_byteArray(split);
+    if (part1 == NULL){
+        return -1;
+    }
+    part2 = init_byteArray(original->size - split);
+    if (part2 == NULL){
+        destroy_byteArray(part1);
+        return -1;
+    }
+
+    for(i = 0; i < original->size; i++){
+        if(i < split) set_byteArray_byte(part1, original->bytes[i], i);
+        else set_byteArray_byte(part2, original->bytes[i], i-split);
+    }
+
+    return 0;
 }
 
 int print_byteArray(ByteArray *byteArray) {

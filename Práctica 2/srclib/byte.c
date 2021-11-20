@@ -25,37 +25,6 @@ int check_byte(char *byte) {
     return 0;
 }
 
-/**
- * Se suman los bits cuyo valor es uno, si da un número impar de bits, entonces el
- * bit de paridad (impar) es cero. Y si la suma de los bits cuyo valor es uno es par,
- * entonces el bit de paridad (impar) se establece en uno, haciendo impar la cuenta
- * total de bits uno.
- * 
- * Devuelve -1 en caso de error o 0 en caso contrario.
- */
-int set_odd_parity_byte(char *byte) {
-    int i, counter = 0;
-
-    // Control de errores
-    if (byte == NULL) return -1;
-
-    // Iteramos por los bits del byte
-    for (i = 0; i < BYTE_SIZE-1; i++) {
-        if (byte[i] == '1') {
-            counter++;
-        }
-    }
-
-    // Asignamos el bit de paridad impar
-    if (counter % 2 == 0) {
-        byte[BYTE_SIZE-1] = '1';
-    } else {
-        byte[BYTE_SIZE-1] = '0';
-    }
-
-    return 0;
-}
-
 char* init_byte(){
     char *byte = NULL;
 
@@ -73,6 +42,38 @@ char* init_byte(){
     }
 
     return byte;
+}
+
+int set_byte_desKey_value(char *byte, unsigned char value) {
+    int i, j, counter = 0;
+
+    // Control de errores
+    if (byte == NULL || value >= 128 || BYTE_SIZE != 8) return -1;
+
+    // Comprobamos si el byte está en notación binaria
+    if (check_byte(byte) == -1) return -1;
+
+    // Iteramos por los bits del byte
+    for (i = 64, j = 0; i > 0; i=i/2, j++) {
+        if (value >= i) {
+            byte[j] = '1';
+            value -= i;
+
+            // Para el bit de paridad
+            counter++;
+        } else {
+            byte[j] = '0';
+        }
+    }
+
+    // Asignamos el bit de paridad impar
+    if (counter % 2 == 0) {
+        byte[7] = '1';
+    } else {
+        byte[7] = '0';
+    }
+
+    return 0;
 }
 
 int set_byte_to_value(char* byte, unsigned char value){

@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
-#include "../includes/alphabet.h"
 #include "../includes/byteArray.h"
 #include "../includes/des.h"
+
+#define BLOCK_SIZE 8 // Número de bytes en los que se divide el texto a cifrar/descifrar
 
 /*
 char** divideBlock(char* key){
@@ -35,16 +35,22 @@ char** divideBlock(char* key){
 // Imprime en pantalla el uso de los comandos del programa
 void print_help() {
     printf("--------------------------\n");
-    printf("desCFB {-C | -D -k clave} {-S s} [-m |Zm|] [-i filein] [-o fileout]\n");
+    printf("desCFB {-C | -D -k clave} {-S s} [-i filein] [-o fileout]\n");
     printf("Siendo los parámetros:\n");
     printf("-C el programa cifra\n");
     printf("-D el programa descifra\n");
     printf("-k clave de 64 bits: 56 bits + 8 bits de paridad\n");
     printf("-S número de bits");
-    printf("-m tamaño del espacio de texto cifrado\n");
     printf("-i fichero de entrada\n");
     printf("-o fichero de salida\n");
     printf("---------------------------\n");
+}
+
+// Libera la memoria inicializada
+void free_mem (ByteArray *key, ByteArray *block, char *message) {
+    if (key != NULL) destroy_byteArray(key);
+    if (block != NULL) destroy_byteArray(block);
+    if (message != NULL) free(message);
 }
 
 // Cerramos los archivos de entrada y salida abiertos previamente
@@ -57,14 +63,14 @@ void close_files (FILE *input, FILE *output) {
 }
 
 int main(int argc, char *argv[]) {
-    ByteArray *byteArray = NULL;
-    char *k, *convertToLong;
-    int i, s = 0, m = DEFAULT_ALPHABET_SIZE;
+    ByteArray *key = NULL, *block = NULL;
+    char *k, *convertToLong, *message = NULL;
+    int i, endRead = 0, readChars = 0, s = 0;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
-    if (argc < 4 || argc > 12) {
+    if (argc < 4 || argc > 10) {
         printf("Error: Número incorrecto de parámetros.\n");
         print_help();
         return -1;
@@ -105,19 +111,6 @@ int main(int argc, char *argv[]) {
                 return -1;
             }
 
-        // Parámetro adicional
-        } else if (strcmp(argv[i], "-m") == 0) {
-            // Tamaño del espacio de texto cifrado
-            m = (int) strtol(argv[++i], &convertToLong, 10);
-
-            // Comprobamos si no se ha convertido ningún caracter
-            if (argv[i] == convertToLong) {
-                printf("Error: El parámetro -m %s no es válido.\n", argv[i]);
-
-                close_files(input, output);
-                return -1;
-            }
-
         // Parámetros de ficheros entrada/salida. Por defecto stdin y stdout
         } else if (strcmp(argv[i], "-i") == 0) {
             // Abrimos fichero de entrada
@@ -148,44 +141,100 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Cargamos el alfabeto del archivo alphabet/alphabet.txt
-    if ((m = load_alphabet("alphabet/alphabet.txt", m)) == -1) {
-        printf("Error: El alfabeto no se pudo cargar.\n");
-
-        close_files(input, output);
-        return -1;
-    }
-
     // Creamos una clave aleatoria para cifrar/descifrar
     if (modo == 0) {
-        // Utilizamos srand para tener números aleatorios en cada ejecución del programa
-        srand(time(NULL));
+        // Clave de 64 bits (56 + 8)
+        key = generate_random_desKey();
+        if (key == NULL) {
+            printf("Error: La clave aleatoria necesaria para cifrar no se pudo generar.\n");
 
-        // TODO
+            close_files(input, output);
+            return -1;
+        }
+
+        printf("Clave generada: %llu\n", get_byteArray_value(key));
     }
 
-    byteArray = init_byteArray(8);
-    if (byteArray == NULL) {
-        printf("Error: TODO.\n");
+    // Creamos el bloque de bytes para el mensaje
+    block = init_byteArray(8);
+    if (block == NULL) {
+        printf("Error: No se ha podido inicializar la memoria del bloque de bytes para el mensaje.\n");
 
-        destroy_alphabet();
+        free_mem(key, block, message);
         close_files(input, output);
         return -1;
     }
 
-    print_byteArray(byteArray);
+    // Inicializamos el buffer del mensaje a leer
+    message = (char *) calloc ((BLOCK_SIZE + 1), sizeof(char));
+    if (message == NULL) {
+        printf("Error: No se ha podido inicializar la memoria del mensaje a leer.\n");
 
-    if(set_byteArray_to_value(byteArray, 9999999999LL) == -1) return -1;
+        free_mem(key, block, message);
+        close_files(input, output);
+        return -1;
+    }
 
-    print_byteArray(byteArray);
+    // Leemos el mensaje a cifrar/descifrar
+    while (1) {
+        // Leemos en stdin con fgets para terminar en un salto de línea
+        if (input == stdin) {
+            if (fgets(message, (BLOCK_SIZE + 1), input) == NULL) break;
 
-    printf("Valor del los bytes: %llu \n", get_byteArray_value(byteArray));
+            // En el salto de línea dejamos de leer
+            endRead = (strchr(message, '\n') != NULL);
+            if (endRead) message[strcspn(message, "\n")] = '\0';
+
+            readChars = strlen(message);
+
+        // Leemos archivos binarios con fread
+        } else {
+            readChars = fread(message, sizeof(char), BLOCK_SIZE, input);
+            if (readChars <= 0) break;
+        }
+
+        // Asignamos los caracteres del bloque al bloque de bytes
+        for (i = 0; i < readChars; i++) {
+            if (set_byteArray_byte_value(block, message[i], i) == -1){
+                printf("Error: No se ha podido obtener el valor de un caracter del bloque a cifrar.\n");
+
+                free_mem(key, block, message);
+                close_files(input, output);
+                return -1;
+            }
+        }
+
+        if (modo == 0) {
+            // Ciframos el bloque con des
+            if (des_encrypt(block, key) == -1) {
+                printf("Error: No se ha podido cifrar el bloque:\n");
+                print_byteArray(block);
+
+                free_mem(key, block, message);
+                close_files(input, output);
+                return -1;
+            }
+        } else {
+            // TODO
+            return -1;
+        }
+
+        // Limpiamos el buffer del mensaje y el bloque de bytes
+        memset(message, 0, BLOCK_SIZE + 1);
+        if (set_byteArray_to_value(block, 0LL) == -1) {
+            printf("Error: No se ha podido limpiar el bloque de bytes.\n");
+
+            free_mem(key, block, message);
+            close_files(input, output);
+            return -1;
+        }
+
+        // Salir del bucle en stdin
+        if (endRead) break;
+    }
 
     // Liberamos memoria
-    destroy_byteArray(byteArray);
-
-    // Liberamos alfabeto
-    destroy_alphabet();
+    free_mem(key, block, message);
 
     // Cerramos los archivos si no son stdin/stdout
     close_files(input, output);

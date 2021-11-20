@@ -1,9 +1,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../includes/des.h"
 #include "../includes/byteArray.h"
+#include "../includes/des.h"
 #include "../includes/DES_tables.h"
+
+ByteArray *generate_random_desKey() {
+    ByteArray *key = NULL;
+
+    // Inicializamos una lista de 8 bytes (64 bits)
+    key = init_byteArray(8);
+    if (key == NULL) return NULL;
+
+    // Asignamos un valor aleatorio a la clave con sus correspondientes bits de paridad
+    if (set_byteArray_desKey_value(key) == -1) {
+        destroy_byteArray(key);
+        return NULL;
+    }
+
+    return key;
+}
 
 /**
  * Permuta y comprime la clave inicial, eliminando bits de paridad.
@@ -55,11 +71,13 @@ int compute_round(ByteArray *message, ByteArray *key) {
     return 0;
 }
 
-int des_encrypt(ByteArray *message, ByteArray *key) {
-    int round = 0;
+ByteArray *des_encrypt(ByteArray *message, ByteArray *key) {
+    ByteArray *encrypted = NULL;
+    // int round = 0;
 
     // Control de errores
-    if (message == NULL || key == NULL) return -1;
+    if (message == NULL || key == NULL) return NULL;
+    if (get_byteArray_size(message) != 8 || get_byteArray_size(key) != 8) return NULL;
 
     // permuted_choice_one(key);
 
@@ -72,7 +90,7 @@ int des_encrypt(ByteArray *message, ByteArray *key) {
 
     // permuted_choice_two(key);
 
-    return 0;
+    return encrypted;
 }
 
 int des_decrypt(ByteArray *key) {
