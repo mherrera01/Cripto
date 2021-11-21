@@ -215,7 +215,7 @@ Bits *sustitution_box(Bits *xorMessage) {
         // a1 a2 a3 a4 a5 a6 -> a1 a6 es la fila
         startIndex = i*(columnBits + rowBits);
         set_bit(sboxRow, 0, get_bit(xorMessage, startIndex));
-        set_bit(sboxRow, 1, get_bit(xorMessage, (i+1)*(columnBits + rowBits)));
+        set_bit(sboxRow, 1, get_bit(xorMessage, ((i+1)*(columnBits + rowBits)) - 1));
 
         // Obtenemos la columna de la caja Si
         sboxColumn = init_bits(columnBits);
@@ -231,7 +231,7 @@ Bits *sustitution_box(Bits *xorMessage) {
         }
 
         // Asignamos el resultado de la caja Si
-        set_hex_to_value(sboxMsg, i, S_BOXES[i][get_bits_decimal_value(sboxRow)][get_bits_decimal_value(sboxColumn)]); 
+        set_hex_to_value(sboxMsg, i, S_BOXES[i][get_bits_decimal_value(sboxRow)][get_bits_decimal_value(sboxColumn)]);
 
         // Liberamos memoria
         destroy_bits(sboxRow);
@@ -347,32 +347,41 @@ int compute_round(Bits *message, Bits *key) {
     return 0;
 }
 
-Bits *des_encrypt(Bits *message, Bits *key) {
-    Bits *encryptedMsg = NULL, *roundMsg = NULL, *swap1 = NULL, *swap2 = NULL;
-    Bits *roundKey = NULL, *roundKeyPermuted = NULL, *key1 = NULL, *key2 = NULL;
+void free_des_subkeys(Bits **subkeys) {
+    int i;
+
+    if (subkeys != NULL) {
+        for (i = 0; i < 16; i++) {
+            if (subkeys[i] != NULL) destroy_bits(subkeys[i]);
+        }
+        free(subkeys);
+    }
+}
+
+// Devuelve la lista de las 16 subclaves necesarias para el cifrado/descifrado o NULL en caso de error.
+Bits **get_des_subkeys(Bits *key) {
+    Bits **subkeys = NULL, *roundKey = NULL, *key1 = NULL, *key2 = NULL;
     int round = 0;
 
     // Control de errores
-    if (message == NULL || key == NULL) return NULL;
-    if (get_bits_size(message) != 64 || get_bits_size(key) != 64) return NULL;
+    if (key == NULL || get_bits_size(key) != 64) return NULL;
+
+    // Inicializamos memoria para la lista de las 16 subclaves
+    subkeys = (Bits **) malloc (sizeof(Bits *) * 16);
+    if (subkeys == NULL) return NULL;
 
     // Permutamos la clave y la convertimos a 56 bits
     roundKey = permuted_choice_one(key);
-    if (roundKey == NULL) return NULL;
-
-    // Permutamos el texto plano inicial
-    roundMsg = initial_permutation(message);
-    if (roundMsg == NULL) {
-        destroy_bits(roundKey);
+    if (roundKey == NULL) {
+        free_des_subkeys(subkeys);
         return NULL;
     }
 
-    // Des tiene 16 rondas.
     while (round < 16) {
         // Dividimos la clave en dos partes de 28 bits.
         if (split_bits(roundKey, 28, &key1, &key2) == -1) {
-            destroy_bits(roundMsg);
             destroy_bits(roundKey);
+            free_des_subkeys(subkeys);
             return NULL;
         }
 
@@ -380,8 +389,8 @@ Bits *des_encrypt(Bits *message, Bits *key) {
         if (left_circular_shift(key1, round) == -1 || left_circular_shift(key2, round) == -1) {
             destroy_bits(key1);
             destroy_bits(key2);
-            destroy_bits(roundMsg);
             destroy_bits(roundKey);
+            free_des_subkeys(subkeys);
             return NULL;
         }
 
@@ -390,63 +399,135 @@ Bits *des_encrypt(Bits *message, Bits *key) {
         roundKey = merge_bits(key1, key2);
 
         // Permutamos la clave y la comvertimos en 48 bits 
-        roundKeyPermuted = permuted_choice_two(roundKey);
-        if (roundKeyPermuted == NULL) {
+        subkeys[round] = permuted_choice_two(roundKey);
+        if (subkeys[round] == NULL) {
             destroy_bits(key1);
             destroy_bits(key2);
-            destroy_bits(roundMsg);
             destroy_bits(roundKey);
-            return NULL;
-        }
-
-        // Ejecutamos la ronda
-        if (compute_round(roundMsg, roundKeyPermuted) == -1) {
-            destroy_bits(roundKeyPermuted);
-            destroy_bits(key1);
-            destroy_bits(key2);
-            destroy_bits(roundMsg);
-            destroy_bits(roundKey);
+            free_des_subkeys(subkeys);
             return NULL;
         }
 
         // Liberamos memoria
-        destroy_bits(roundKeyPermuted);
         destroy_bits(key1);
         destroy_bits(key2);
 
-        round++; // Siguiente ronda
+        round++;
     }
+
+    destroy_bits(roundKey);
+
+    return subkeys;
+}
+
+// Hace un swap y permuta el mensaje de salida de la última ronda
+Bits *compute_last_round(Bits *message) {
+    Bits *convertedMsg = NULL, *swapMsg = NULL, *swap1 = NULL, *swap2 = NULL;
+
+    // Control de errores
+    if (message == NULL || get_bits_size(message) != 64) return NULL;
 
     // Swap de 32 bits
-    if (split_bits(roundMsg, 32, &swap1, &swap2) == -1) {
-        destroy_bits(roundMsg);
-        destroy_bits(roundKey);
-        return NULL;
-    }
+    if (split_bits(message, 32, &swap1, &swap2) == -1) return NULL;
 
-    destroy_bits(roundMsg);
-    roundMsg = merge_bits(swap1, swap2);
-    if (roundMsg == NULL) {
+    swapMsg = merge_bits(swap2, swap1);
+    if (message == NULL) {
         destroy_bits(swap1);
         destroy_bits(swap2);
         return NULL;
     }
 
     // Inversa de la permutación inicial
-    encryptedMsg = inverse_initial_permutation(roundMsg);
+    convertedMsg = inverse_initial_permutation(swapMsg);
 
     // Liberamos memoria
+    destroy_bits(swapMsg);
     destroy_bits(swap1);
     destroy_bits(swap2);
+
+    return convertedMsg;
+}
+
+Bits *des_encrypt(Bits *message, Bits *key) {
+    Bits **subkeys = NULL;
+    Bits *encryptedMsg = NULL, *roundMsg = NULL;
+    int round = 0;
+
+    // Control de errores
+    if (message == NULL || key == NULL) return NULL;
+    if (get_bits_size(message) != 64 || get_bits_size(key) != 64) return NULL;
+
+    // Obtenemos las subclaves para cifrar
+    subkeys = get_des_subkeys(key);
+    if (subkeys == NULL) return NULL;
+
+    // Permutamos el texto plano inicial
+    roundMsg = initial_permutation(message);
+    if (roundMsg == NULL) {
+        free_des_subkeys(subkeys);
+        return NULL;
+    }
+
+    // Des tiene 16 rondas.
+    while (round < 16) {
+        // Ejecutamos la ronda con la clave
+        if (compute_round(roundMsg, subkeys[round]) == -1) {
+            destroy_bits(roundMsg);
+            free_des_subkeys(subkeys);
+            return NULL;
+        }
+
+        round++; // Siguiente ronda
+    }
+
+    // Obtenemos el mensaje cifrado a partir de la salida de la última ronda
+    encryptedMsg = compute_last_round(roundMsg);
+
+    // Liberamos memoria
     destroy_bits(roundMsg);
-    destroy_bits(roundKey);
+    free_des_subkeys(subkeys);
 
     return encryptedMsg;
 }
 
-int des_decrypt(Bits *key) {
-    // Control de errores
-    if (key == NULL) return -1;
+Bits *des_decrypt(Bits *message, Bits *key) {
+    Bits **subkeys = NULL;
+    Bits *decryptedMsg = NULL, *roundMsg = NULL;
+    int round = 0;
 
-    return 0;
+    // Control de errores
+    if (message == NULL || key == NULL) return NULL;
+    if (get_bits_size(message) != 64 || get_bits_size(key) != 64) return NULL;
+
+    // Obtenemos las subclaves para invertir su orden y descifrar
+    subkeys = get_des_subkeys(key);
+    if (subkeys == NULL) return NULL;
+
+    // Permutamos el texto plano inicial
+    roundMsg = initial_permutation(message);
+    if (roundMsg == NULL) {
+        free_des_subkeys(subkeys);
+        return NULL;
+    }
+
+    // Des tiene 16 rondas.
+    while (round < 16) {
+        // Ejecutamos la ronda con la clave invertida
+        if (compute_round(roundMsg, subkeys[15 - round]) == -1) {
+            destroy_bits(roundMsg);
+            free_des_subkeys(subkeys);
+            return NULL;
+        }
+
+        round++; // Siguiente ronda
+    }
+
+    // Obtenemos el mensaje descifrado a partir de la salida de la última ronda
+    decryptedMsg = compute_last_round(roundMsg);
+
+    // Liberamos memoria
+    destroy_bits(roundMsg);
+    free_des_subkeys(subkeys);
+
+    return decryptedMsg;
 }

@@ -342,7 +342,11 @@ Bits *xor_bits(Bits *operand1, Bits *operand2) {
 
     // Calculamos el resultado de la operación XOR entre dos operandos
     for (i = 0; i < operand1->size; i++) {
-        result->bits[i] = operand1->bits[i] ^ operand2->bits[i];
+        if (operand1->bits[i] != operand2->bits[i]) {
+            result->bits[i] = ASCII_1;
+        } else {
+            result->bits[i] = ASCII_0;
+        }
     }
 
     return result;

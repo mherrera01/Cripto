@@ -9,12 +9,11 @@
 // Imprime en pantalla el uso de los comandos del programa
 void print_help() {
     printf("--------------------------\n");
-    printf("desCFB {-C | -D -k clave} {-S s} [-i filein] [-o fileout]\n");
+    printf("desECB {-C | -D -k clave} [-i filein] [-o fileout]\n");
     printf("Siendo los parámetros:\n");
     printf("-C el programa cifra\n");
     printf("-D el programa descifra\n");
     printf("-k clave de 64 bits: 56 bits + 8 bits de paridad en hexadecimal. Ej: 3119DC7A6237ECBC)\n");
-    printf("-S número de bits");
     printf("-i fichero de entrada\n");
     printf("-o fichero de salida\n");
     printf("---------------------------\n");
@@ -38,20 +37,20 @@ void close_files (FILE *input, FILE *output) {
 
 int main(int argc, char *argv[]) {
     Bits *key = NULL, *block = NULL, *convertedBlock = NULL;
-    char *k, *convertToLong, *message = NULL, keyHex[2] = {0}, keyHexValue;
-    int i, endRead = 0, readChars = 0, s = 0;
+    char *k, *message = NULL, keyHex[2] = {0}, keyHexValue;
+    int i, endRead = 0, readChars = 0;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
     FILE *input = stdin, *output = stdout;
 
     // Comprobar número de argumentos del usuario
-    if (argc < 4 || argc > 10) {
+    if (argc < 2 || argc > 8) {
         printf("Error: Número incorrecto de parámetros.\n");
         print_help();
         return -1;
     }
 
     // Obtener parámetros del usuario
-    // desCFB {-C | -D -k clave} {-S s} [-i filein] [-o fileout]
+    // desECB {-C | -D -k clave} [-i filein] [-o fileout]
     for (i = 1; i < argc; i++) {
         if (strcmp("-C", argv[i]) == 0) {
             // Cifrar
@@ -74,18 +73,6 @@ int main(int argc, char *argv[]) {
 
             } else {
                 printf("Error: El parámetro -k no existe.\n");
-
-                close_files(input, output);
-                return -1;
-            }
-
-        } else if (strcmp(argv[i], "-S") == 0) {
-            // Número de bits
-            s = (int) strtol(argv[++i], &convertToLong, 10);
-
-            // Comprobamos si no se ha convertido ningún caracter
-            if (argv[i] == convertToLong) {
-                printf("Error: El parámetro -S %s no es válido.\n", argv[i]);
 
                 close_files(input, output);
                 return -1;
@@ -185,7 +172,7 @@ int main(int argc, char *argv[]) {
     if (input == stdin) {
         printf("Introduce el texto a cifrar/descifrar: \n");
     } else {
-        printf("Ejecutando DES en modo de operación CFB...\n");
+        printf("Ejecutando DES en modo de operación ECB...\n");
     }
 
     // Leemos el mensaje a cifrar/descifrar
@@ -258,7 +245,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (input == stdin) printf("\n");
-    printf("DES en modo de operación CFB ejecutado con éxito.\n");
+    printf("DES en modo de operación ECB ejecutado con éxito.\n");
 
     // Liberamos memoria
     free_mem(key, block, message);

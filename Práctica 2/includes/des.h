@@ -12,4 +12,12 @@ Bits *generate_random_desKey();
  */
 Bits *des_encrypt(Bits *message, Bits *key);
 
+/**
+ * Descifra con el algoritmo des un mensaje de 64 bits aplicando
+ * las subclaves en orden inverso.
+ * 
+ * Devuelve el mensaje descifrado en 8 bytes o NULL en caso de error.
+ */
+Bits *des_decrypt(Bits *message, Bits *key);
+
 #endif
