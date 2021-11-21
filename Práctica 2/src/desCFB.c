@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../includes/bits.h"
-//#include "../includes/des.h"
+#include "../includes/des.h"
 
 #define BLOCK_SIZE 8 // Número de bytes en los que se divide el texto a cifrar/descifrar
 
@@ -46,11 +46,10 @@ void print_help() {
     printf("---------------------------\n");
 }
 
-/*
 // Libera la memoria inicializada
-void free_mem (ByteArray *key, ByteArray *block, char *message) {
-    if (key != NULL) destroy_byteArray(key);
-    if (block != NULL) destroy_byteArray(block);
+void free_mem (Bits *key, Bits *block, char *message) {
+    if (key != NULL) destroy_bits(key);
+    if (block != NULL) destroy_bits(block);
     if (message != NULL) free(message);
 }
 
@@ -63,9 +62,8 @@ void close_files (FILE *input, FILE *output) {
     if (output != stdout) fclose(output);
 }
 
-
 int main(int argc, char *argv[]) {
-    ByteArray *key = NULL, *block = NULL;
+    Bits *key = NULL, *block = NULL, *convertedBlock = NULL;
     char *k, *convertToLong, *message = NULL;
     int i, endRead = 0, readChars = 0, s = 0;
     int modo = 0; // modo en 0 para cifrar y 1 para descifrar
@@ -154,11 +152,12 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        printf("Clave generada: %llu\n", get_byteArray_value(key));
+        printf("Clave generada:\n");
+        print_bits_hex(key);
     }
 
     // Creamos el bloque de bytes para el mensaje
-    block = init_byteArray(8);
+    block = init_bits(64);
     if (block == NULL) {
         printf("Error: No se ha podido inicializar la memoria del bloque de bytes para el mensaje.\n");
 
@@ -197,8 +196,8 @@ int main(int argc, char *argv[]) {
 
         // Asignamos los caracteres del bloque al bloque de bytes
         for (i = 0; i < readChars; i++) {
-            if (set_byteArray_byte_value(block, message[i], i) == -1){
-                printf("Error: No se ha podido obtener el valor de un caracter del bloque a cifrar.\n");
+            if (set_byte_to_value(block, i, message[i]) == -1){
+                printf("Error: No se ha podido asignar el valor del caracter %c al bloque.\n", message[i]);
 
                 free_mem(key, block, message);
                 close_files(input, output);
@@ -208,9 +207,10 @@ int main(int argc, char *argv[]) {
 
         if (modo == 0) {
             // Ciframos el bloque con des
-            if (des_encrypt(block, key) == -1) {
+            convertedBlock = des_encrypt(block, key);
+            if (convertedBlock == NULL) {
                 printf("Error: No se ha podido cifrar el bloque:\n");
-                print_byteArray(block);
+                print_bits_hex(block);
 
                 free_mem(key, block, message);
                 close_files(input, output);
@@ -221,9 +221,17 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
+        // Mostramos el mensaje convertido
+        print_bits_hex(convertedBlock);
+
+        // TODO fprintf(stdout)
+
+        // Liberamos la memoria del mensaje convertido
+        free(convertedBlock);
+
         // Limpiamos el buffer del mensaje y el bloque de bytes
         memset(message, 0, BLOCK_SIZE + 1);
-        if (set_byteArray_to_value(block, 0LL) == -1) {
+        if (set_bits_to_zero(block) == -1) {
             printf("Error: No se ha podido limpiar el bloque de bytes.\n");
 
             free_mem(key, block, message);
@@ -242,34 +250,4 @@ int main(int argc, char *argv[]) {
     close_files(input, output);
 
     return 0;
-}
-*/
-
-int main(){
-    Bits *b1=NULL, *b2=NULL, *b3=NULL, *b4=NULL;
-
-    b1 = init_bits(64);
-
-    set_byte_to_value(b1, 0, 255);
-    set_byte_to_value(b1, 1, 63);
-    set_byte_to_value(b1, 2, 4);
-
-    printf("b1:\n");
-    print_bits(b1);
-
-    b2 = copy_bits(b1);
-
-    printf("b2 byte 1: %d\n", get_byte_value(b2, 1));
-    
-    split_bits(b2, 19, &b3, &b4);
-
-    printf("b3:\n");
-    print_bits(b3);
-    printf("b4:\n");
-    print_bits(b4);
-
-    destroy_bits(b1);
-    destroy_bits(b2); 
-    destroy_bits(b3); 
-    destroy_bits(b4);
 }
