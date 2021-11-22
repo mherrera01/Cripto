@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs seg-perf desECB desCFB TDEA-CFB DESSboxesLinearity
+all: clean createDirs seg-perf desECB desCFB TDEA-CFB DESSboxesLinearity AESSboxesLinearity
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -39,6 +39,11 @@ DESSboxesLinearity: $(OBJDIR)/DESSboxesLinearity.o $(OBJDIR)/bits.o
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo DESSboxesLinearity compilation completed
 
+AESSboxesLinearity: $(OBJDIR)/AESSboxesLinearity.o $(OBJDIR)/bits.o
+	@echo Compiling AESSboxesLinearity...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo AESSboxesLinearity compilation completed
+
 $(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -54,6 +59,9 @@ $(OBJDIR)/TDEA-CFB.o: src/TDEA-CFB.c includes/bits.h includes/des.h
 $(OBJDIR)/DESSboxesLinearity.o: src/DESSboxesLinearity.c includes/bits.h includes/DES_tables.h 
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/AESSboxesLinearity.o: src/AESSboxesLinearity.c includes/bits.h includes/AES_tables.h 
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -67,7 +75,7 @@ $(OBJDIR)/bits.o: srclib/bits.c includes/bits.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) seg-perf desCFB desECB TDEA-CFB DESSboxesLinearity
+	@rm -rf $(OBJDIR) seg-perf desCFB desECB TDEA-CFB DESSboxesLinearity AESSboxesLinearity
 	@echo Project cleaned
 
 # Valgrind rules
@@ -77,16 +85,20 @@ runv_seg-perf:
 
 runv_desECB:
 	@echo Debugging desECB with valgrind...
-	@valgrind --leak-check=full ./desECB -C
+	@valgrind --leak-check=full ./desECB -C -o testfiles/cifrado_desECB.bin
 
 runv_desCFB:
 	@echo Debugging desCFB with valgrind...
-	@valgrind --leak-check=full ./desCFB -C -iv 76BA344C7F3B5E49 -S 32
+	@valgrind --leak-check=full ./desCFB -C -iv 76BA344C7F3B5E49 -S 32 -o testfiles/cifrado_desCFB.bin
 
 runv_TDEA-CFB:
 	@echo Debugging TDEA-CFB with valgrind...
-	@valgrind --leak-check=full ./TDEA-CFB -C -iv 76BA344C7F3B5E49 -S 32
+	@valgrind --leak-check=full ./TDEA-CFB -C -iv 76BA344C7F3B5E49 -S 32 -o testfiles/cifrado_TDEA-CFB.bin
 
 runv_DESSboxesLinearity:
 	@echo Debugging DESSboxesLinearity with valgrind...
 	@valgrind --leak-check=full ./DESSboxesLinearity
+
+runv_AESSboxesLinearity:
+	@echo Debugging AESSboxesLinearity with valgrind...
+	@valgrind --leak-check=full ./AESSboxesLinearity
