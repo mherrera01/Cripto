@@ -5,6 +5,46 @@
 #include "../includes/bits.h"
 #include "../includes/des.h"
 
+// Devuelve una clave aleatoria de 192 bits (168 bits + 24 bits paridad) o NULL en caso de error.
+Bits *generate_random_triple_desKey() {
+    Bits *key = NULL, *key1 = NULL, *key2 = NULL, *key3 = NULL, *auxKey = NULL;
+
+    // Creamos tres claves aleatorias de 64 bits cada una con sus correspondientes bits de paridad
+    key1 = generate_random_desKey();
+    key2 = generate_random_desKey();
+    key3 = generate_random_desKey();
+
+    // Control de errores
+    if (key1 == NULL || key2 == NULL || key3 == NULL) {
+        destroy_bits(key1);
+        destroy_bits(key2);
+        destroy_bits(key3);
+
+        return NULL;
+    }
+
+    // Unimos las dos primeras claves aleatorias en 128 bits
+    auxKey = merge_bits(key1, key2);
+    if (auxKey == NULL) {
+        destroy_bits(key1);
+        destroy_bits(key2);
+        destroy_bits(key3);
+
+        return NULL;
+    }
+
+    // Obtenemos la clave final de 192 bits (24 de paridad)
+    key = merge_bits(auxKey, key3);
+
+    // Liberamos memoria
+    destroy_bits(auxKey);
+    destroy_bits(key1);
+    destroy_bits(key2);
+    destroy_bits(key3);
+
+    return key;
+}
+
 /**
  * Desplazamiento hacia la izquierda de s bits de una lista de bits.
  * 
@@ -33,13 +73,15 @@ Bits *shift_register(Bits *shift, int sBits) {
     return result;
 }
 
-Bits *compute_desCFB(Bits *registerEntry, int shifts, Bits *message, Bits *key) {
+Bits *compute_triple_desCFB(Bits *registerEntry, int shifts, Bits *message, Bits *key) {
     Bits *convertedMsg = NULL;
-    Bits *shiftBits = NULL, *desResult = NULL, *select = NULL, *discard = NULL;
+    Bits *shiftBits = NULL, *select = NULL, *discard = NULL;
+    Bits *desResult1 = NULL, *desResult2 = NULL, *desResult3 = NULL;
+    Bits *key1 = NULL, *key2 = NULL, *key3 = NULL, *auxKey = NULL; // Claves para el triple DES
 
     // Control de errores
     if (registerEntry == NULL || message == NULL || key == NULL) return NULL;
-    if (get_bits_size(message) != shifts) return NULL;
+    if (get_bits_size(message) != shifts || get_bits_size(key) != 192) return NULL;
 
     // Desplazamiento a la izquierda para obtener la entrada de 64 bits del des
     shiftBits = shift_register(registerEntry, shifts);
@@ -50,23 +92,81 @@ Bits *compute_desCFB(Bits *registerEntry, int shifts, Bits *message, Bits *key) 
         return NULL;
     }
 
-    // Ciframos el resultado del desplazamiento con des
-    desResult = des_encrypt(shiftBits, key);
-    if (desResult == NULL) {
-        printf("Error: No se ha podido cifrar el resultado del desplazamiento:\n");
-        print_bits_hex(shiftBits);
+    // Obtenemos las primera clave a partir de 192 bits
+    if (split_bits(key, 64, &key1, &auxKey) == -1) {
+        printf("Error: No se ha podido obtener la primera clave necesaria para el triple DES.\n");
 
         destroy_bits(shiftBits);
         return NULL;
     }
 
-    // Seleccionamos los s bits más significativos del resultado de DES
-    if (shifts != 64) {
-        if (split_bits(desResult, shifts, &select, &discard) == -1) {
-            printf("Error: No se han podido seleccionar los %d bits del resultado de DES:\n", shifts);
-            print_bits_hex(desResult);
+    // Obtenemos la segunda y tercera clave para el triple DES
+    if (split_bits(auxKey, 64, &key2, &key3) == -1) {
+        printf("Error: No se ha podido obtener la segunda y tercera clave necesarias para el triple DES.\n");
 
-            destroy_bits(desResult);
+        destroy_bits(key1);
+        destroy_bits(auxKey);
+        destroy_bits(shiftBits);
+        return NULL;
+    }
+    destroy_bits(auxKey);
+
+    // Ciframos el resultado del desplazamiento con DES y con la primera clave
+    desResult1 = des_encrypt(shiftBits, key1);
+    if (desResult1 == NULL) {
+        printf("Error: No se ha podido cifrar el resultado del desplazamiento con la clave 1:\n");
+        print_bits_hex(key1);
+
+        destroy_bits(key1);
+        destroy_bits(key2);
+        destroy_bits(key3);
+        destroy_bits(shiftBits);
+        return NULL;
+    }
+
+    // Desciframos el resultado del primer cifrado DES con la segunda clave
+    desResult2 = des_decrypt(desResult1, key2);
+    if (desResult2 == NULL) {
+        printf("Error: No se ha podido descifrar el resultado del primer cifrado DES con la clave 2:\n");
+        print_bits_hex(key2);
+
+        destroy_bits(desResult1);
+        destroy_bits(key1);
+        destroy_bits(key2);
+        destroy_bits(key3);
+        destroy_bits(shiftBits);
+        return NULL;
+    }
+
+    // Ciframos el resultado del descifrado DES con la tercera clave
+    desResult3 = des_encrypt(desResult2, key3);
+    if (desResult3 == NULL) {
+        printf("Error: No se ha podido cifrar el resultado del descifrado DES con la clave 3:\n");
+        print_bits_hex(key3);
+
+        destroy_bits(desResult1);
+        destroy_bits(desResult2);
+        destroy_bits(key1);
+        destroy_bits(key2);
+        destroy_bits(key3);
+        destroy_bits(shiftBits);
+        return NULL;
+    }
+
+    // Liberamos memoria
+    destroy_bits(desResult1);
+    destroy_bits(desResult2);
+    destroy_bits(key1);
+    destroy_bits(key2);
+    destroy_bits(key3);
+
+    // Seleccionamos los s bits más significativos del resultado del triple DES
+    if (shifts != 64) {
+        if (split_bits(desResult3, shifts, &select, &discard) == -1) {
+            printf("Error: No se han podido seleccionar los %d bits del resultado del triple DES:\n", shifts);
+            print_bits_hex(desResult3);
+
+            destroy_bits(desResult3);
             destroy_bits(shiftBits);
             return NULL;
         }
@@ -77,12 +177,12 @@ Bits *compute_desCFB(Bits *registerEntry, int shifts, Bits *message, Bits *key) 
         destroy_bits(select);
         destroy_bits(discard);
     } else {
-        // Cogemos todos los bits del resultado de DES y hacemos XOR con el mensaje
-        convertedMsg = xor_bits(desResult, message);
+        // Cogemos todos los bits del resultado del triple DES y hacemos XOR con el mensaje
+        convertedMsg = xor_bits(desResult3, message);
     }
 
     // Liberamos memoria
-    destroy_bits(desResult);
+    destroy_bits(desResult3);
     destroy_bits(shiftBits);
 
     return convertedMsg;
@@ -91,11 +191,11 @@ Bits *compute_desCFB(Bits *registerEntry, int shifts, Bits *message, Bits *key) 
 // Imprime en pantalla el uso de los comandos del programa
 void print_help() {
     printf("--------------------------\n");
-    printf("desCFB {-C | -D -k clave} {-iv IV} {-S s} [-i filein] [-o fileout]\n");
+    printf("TDEA-CFB {-C | -D -k clave} {-iv vectorinicializacion} {-S s} [-i filein] [-o fileout]\n");
     printf("Siendo los parámetros:\n");
     printf("-C el programa cifra\n");
     printf("-D el programa descifra\n");
-    printf("-k clave de 64 bits: 56 bits + 8 bits de paridad en hexadecimal. Ej: 3119DC7A6237ECBC\n");
+    printf("-k clave de 192 bits: 168 bits + 24 bits de paridad en hexadecimal. Ej: E6B9C11C7AFE94BAA7DC0E5E5E3270DC0D16A4589B8F1C26\n");
     printf("-iv vector de inicialización en hexadecimal. Ej: 76BA344C7F3B5E49\n");
     printf("-S número de bits para el desplazamiento en modo CFB\n");
     printf("-i fichero de entrada\n");
@@ -136,7 +236,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Obtener parámetros del usuario
-    // desCFB {-C | -D -k clave} {-iv IV} {-S s} [-i filein] [-o fileout]
+    // TDEA-CFB {-C | -D -k clave} {-iv vectorinicializacion} {-S s} [-i filein] [-o fileout]
     for (i = 1; i < argc; i++) {
         if (strcmp("-C", argv[i]) == 0) {
             // Cifrar
@@ -148,10 +248,10 @@ int main(int argc, char *argv[]) {
 
             // Comprobamos si el siguiente argumento es k
             if (strcmp(argv[++i], "-k") == 0) {
-                // Clave de 64 bits: 56 bits + 8 bits de paridad
+                // Clave de 192 bits: 168 bits + 24 bits de paridad
                 k = argv[++i];
-                if (strlen(k) != 64/4) {
-                    printf("Error: La clave -k debe estar en hexadecimal y contener 64 bits. Ej: 3119DC7A6237ECBC.\n");
+                if (strlen(k) != 192/4) {
+                    printf("Error: La clave -k debe estar en hexadecimal y contener 192 bits. Ej: E6B9C11C7AFE94BAA7DC0E5E5E3270DC0D16A4589B8F1C26.\n");
 
                     close_files(input, output);
                     return -1;
@@ -222,8 +322,8 @@ int main(int argc, char *argv[]) {
 
     // Creamos una clave aleatoria para cifrar
     if (modo == 0) {
-        // Clave de 64 bits (56 + 8)
-        key = generate_random_desKey();
+        // Clave de 192 bits (168 + 24)
+        key = generate_random_triple_desKey();
         if (key == NULL) {
             printf("Error: La clave aleatoria necesaria para cifrar no se pudo generar.\n");
 
@@ -236,7 +336,7 @@ int main(int argc, char *argv[]) {
         printf("\n");
     } else {
         // Reservamos memoria para la clave de descifrado
-        key = init_bits(64);
+        key = init_bits(192);
         if (key == NULL || k == NULL) {
             printf("Error: No se pudo reservar memoria para la clave de descifrado.\n");
 
@@ -324,7 +424,7 @@ int main(int argc, char *argv[]) {
     if (input == stdin) {
         printf("Introduce el texto a cifrar/descifrar: \n");
     } else {
-        printf("Ejecutando DES en modo de operación CFB...\n");
+        printf("Ejecutando triple DES en modo de operación CFB...\n");
     }
 
     // Leemos el mensaje a cifrar/descifrar
@@ -356,13 +456,13 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // Convertimos el bloque con des en modo de operación CFB
+        // Convertimos el bloque con triple des en modo de operación CFB
         if (firstIteration == 0) {
             // Usamos el IV en la primera iteración
-            convertedBlock = compute_desCFB(ivBits, s, block, key);
+            convertedBlock = compute_triple_desCFB(ivBits, s, block, key);
             firstIteration = 1;
         } else {
-            convertedBlock = compute_desCFB(registerEntry, s, block, key);
+            convertedBlock = compute_triple_desCFB(registerEntry, s, block, key);
         }
 
         // Comprobamos si el bloque se ha podido convertir
@@ -406,7 +506,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (input == stdin) printf("\n");
-    printf("DES en modo de operación CFB ejecutado con éxito.\n");
+    printf("Triple DES en modo de operación CFB ejecutado con éxito.\n");
 
     // Liberamos memoria
     free_mem(key, ivBits, registerEntry, block, message);

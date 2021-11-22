@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs seg-perf desECB desCFB
+all: clean createDirs seg-perf desECB desCFB TDEA-CFB DESSboxesLinearity
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -29,6 +29,16 @@ desCFB: $(OBJDIR)/desCFB.o $(OBJDIR)/bits.o $(OBJDIR)/des.o
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo DesCFB compilation completed
 
+TDEA-CFB: $(OBJDIR)/TDEA-CFB.o $(OBJDIR)/bits.o $(OBJDIR)/des.o
+	@echo Compiling TDEA-CFB...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo TDEA-CFB compilation completed
+
+DESSboxesLinearity: $(OBJDIR)/DESSboxesLinearity.o $(OBJDIR)/bits.o
+	@echo Compiling DESSboxesLinearity...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo DESSboxesLinearity compilation completed
+
 $(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -36,6 +46,12 @@ $(OBJDIR)/desCFB.o: src/desCFB.c includes/bits.h includes/des.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/desECB.o: src/desECB.c includes/bits.h includes/des.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/TDEA-CFB.o: src/TDEA-CFB.c includes/bits.h includes/des.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/DESSboxesLinearity.o: src/DESSboxesLinearity.c includes/bits.h includes/DES_tables.h 
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
@@ -51,7 +67,7 @@ $(OBJDIR)/bits.o: srclib/bits.c includes/bits.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) seg-perf desCFB desECB
+	@rm -rf $(OBJDIR) seg-perf desCFB desECB TDEA-CFB DESSboxesLinearity
 	@echo Project cleaned
 
 # Valgrind rules
@@ -65,4 +81,12 @@ runv_desECB:
 
 runv_desCFB:
 	@echo Debugging desCFB with valgrind...
-	@valgrind --leak-check=full ./desCFB -C -S 32
+	@valgrind --leak-check=full ./desCFB -C -iv 76BA344C7F3B5E49 -S 32
+
+runv_TDEA-CFB:
+	@echo Debugging TDEA-CFB with valgrind...
+	@valgrind --leak-check=full ./TDEA-CFB -C -iv 76BA344C7F3B5E49 -S 32
+
+runv_DESSboxesLinearity:
+	@echo Debugging DESSboxesLinearity with valgrind...
+	@valgrind --leak-check=full ./DESSboxesLinearity

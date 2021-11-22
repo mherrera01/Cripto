@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include "../includes/bits.h"
 
 // Estructura que guarda una lista de bits.
@@ -15,9 +14,6 @@ Bits* init_bits(int size){
     int i;
 
     if(size <= 0) return NULL;
-    if(size > 64){
-        printf("Warning: Tamaños superiores a 64 bits pueden tener problemas al convertirse a enteros.\n");
-    }
 
     bits = (Bits*) malloc (sizeof(Bits));
     if(bits == NULL) return NULL;
@@ -212,9 +208,6 @@ int set_bits_desKey_value(Bits *bits) {
 
     // Control de errores.
     if (bits == NULL || bits->bits == NULL || bits->size != 64) return -1;
-
-    // Utilizamos srand para tener números aleatorios en cada ejecución del programa
-    srand(time(NULL));
 
     for (i = 0; i < bits->size/BYTE_SIZE; i++) {
         // Generamos un número positivo aleatorio de 7 bits

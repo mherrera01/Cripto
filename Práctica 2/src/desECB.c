@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "../includes/bits.h"
 #include "../includes/des.h"
 
@@ -107,6 +108,9 @@ int main(int argc, char *argv[]) {
             return -1;
         }
     }
+
+    // Utilizamos srand para tener números aleatorios en cada ejecución del programa
+    srand(time(NULL));
 
     // Creamos una clave aleatoria para cifrar
     if (modo == 0) {
