@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
         if (endRead) break;
     }
 
-    if (input == stdin) printf("\n");
+    if (input == stdin || output == stdout) printf("\n");
     printf("DES en modo de operación CFB ejecutado con éxito.\n");
 
     // Liberamos memoria
