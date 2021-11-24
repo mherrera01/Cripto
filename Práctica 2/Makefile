@@ -45,7 +45,7 @@ AESSboxesLinearity: $(OBJDIR)/AESSboxesLinearity.o $(OBJDIR)/bits.o
 	@echo AESSboxesLinearity compilation completed
 
 avalancha: $(OBJDIR)/avalancha.o $(OBJDIR)/bits.o $(OBJDIR)/des.o
-	@echo Compiling Avalancha...
+	@echo Compiling avalancha...
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo Avalancha compilation completed
 
@@ -110,3 +110,7 @@ runv_DESSboxesLinearity:
 runv_AESSboxesLinearity:
 	@echo Debugging AESSboxesLinearity with valgrind...
 	@valgrind --leak-check=full ./AESSboxesLinearity
+
+runv_avalancha:
+	@echo Debugging avalancha with valgrind...
+	@valgrind --leak-check=full ./avalancha

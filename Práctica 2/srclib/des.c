@@ -22,11 +22,6 @@ Bits *generate_random_desKey() {
     return key;
 }
 
-/**
- * Permutación inicial de los 64 bits de entrada.
- * 
- * Devuelve NULL en caso de error o la clave permutada en caso contrario.
- */
 Bits *initial_permutation(Bits *message) {
     Bits *permutedMsg = NULL;
     int i;
@@ -297,12 +292,6 @@ Bits *compute_fRound(Bits *messageR, Bits *key) {
     return permutedSBox;
 }
 
-/**
- * Calcula el resultado de una ronda dada una clave y lo devuelve
- * en el mensaje 
- * 
- * Devuelve -1 en caso de error 0 en caso contrario.
- */
 int compute_round(Bits *message, Bits *key) {
     Bits *messageL = NULL, *messageR = NULL, *fResult = NULL;
     Bits *nextMessageR = NULL, *nextMessage = NULL;
@@ -358,7 +347,6 @@ void free_des_subkeys(Bits **subkeys) {
     }
 }
 
-// Devuelve la lista de las 16 subclaves necesarias para el cifrado/descifrado o NULL en caso de error.
 Bits **get_des_subkeys(Bits *key) {
     Bits **subkeys = NULL, *roundKey = NULL, *key1 = NULL, *key2 = NULL;
     int round = 0;
@@ -367,7 +355,7 @@ Bits **get_des_subkeys(Bits *key) {
     if (key == NULL || get_bits_size(key) != 64) return NULL;
 
     // Inicializamos memoria para la lista de las 16 subclaves
-    subkeys = (Bits **) malloc (sizeof(Bits *) * 16);
+    subkeys = (Bits **) calloc (sizeof(Bits *), 16);
     if (subkeys == NULL) return NULL;
 
     // Permutamos la clave y la convertimos a 56 bits
@@ -420,7 +408,6 @@ Bits **get_des_subkeys(Bits *key) {
     return subkeys;
 }
 
-// Hace un swap y permuta el mensaje de salida de la última ronda
 Bits *compute_last_round(Bits *message) {
     Bits *convertedMsg = NULL, *swapMsg = NULL, *swap1 = NULL, *swap2 = NULL;
 
