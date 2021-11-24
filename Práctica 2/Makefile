@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs seg-perf desECB desCFB TDEA-CFB DESSboxesLinearity AESSboxesLinearity
+all: clean createDirs seg-perf desECB desCFB TDEA-CFB DESSboxesLinearity AESSboxesLinearity avalancha
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -44,6 +44,11 @@ AESSboxesLinearity: $(OBJDIR)/AESSboxesLinearity.o $(OBJDIR)/bits.o
 	@$(CC) $(CFLAGS) -o$@ $^
 	@echo AESSboxesLinearity compilation completed
 
+avalancha: $(OBJDIR)/avalancha.o $(OBJDIR)/bits.o $(OBJDIR)/des.o
+	@echo Compiling Avalancha...
+	@$(CC) $(CFLAGS) -o$@ $^
+	@echo Avalancha compilation completed
+
 $(OBJDIR)/seg-perf.o: src/seg-perf.c includes/alphabet.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -62,6 +67,9 @@ $(OBJDIR)/DESSboxesLinearity.o: src/DESSboxesLinearity.c includes/bits.h include
 $(OBJDIR)/AESSboxesLinearity.o: src/AESSboxesLinearity.c includes/bits.h includes/AES_tables.h 
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/avalancha.o: src/avalancha.c includes/bits.h includes/des.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 $(OBJDIR)/alphabet.o: srclib/alphabet.c includes/alphabet.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -75,7 +83,7 @@ $(OBJDIR)/bits.o: srclib/bits.c includes/bits.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) seg-perf desCFB desECB TDEA-CFB DESSboxesLinearity AESSboxesLinearity
+	@rm -rf $(OBJDIR) seg-perf desCFB desECB TDEA-CFB DESSboxesLinearity AESSboxesLinearity avalancha
 	@echo Project cleaned
 
 # Valgrind rules
