@@ -105,6 +105,7 @@ int main(int argc, char *argv[]) {
     Bits *key = NULL, *modifiedKey = NULL, *plaintext = NULL, *modifiedPlaintext = NULL;
     Bits **controlResults = NULL, **keyResults = NULL, **plaintextResults = NULL;
     int i, j, plaintextDifference = 0, keyDifference = 0;
+    float percentagePlaintext, percentageKey;
 
     // Utilizamos srand para tener números aleatorios en cada ejecución del programa
     srand(time(NULL));
@@ -142,16 +143,23 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 0; i < ROUND_RESULTS_SIZE; i++) {
+        keyDifference = 0;
+        plaintextDifference = 0;
+
         for (j = 0; j < 64; j++) {
             if (get_bit(keyResults[i], j) != get_bit(controlResults[i], j)) keyDifference++;
             if (get_bit(plaintextResults[i], j) != get_bit(controlResults[i], j)) plaintextDifference++;
         }
+
+        percentagePlaintext = ((float) plaintextDifference/64) * 100.0;
+        percentageKey = ((float) keyDifference/64) * 100.0;
+
         if (i != ROUND_RESULTS_SIZE - 1) {
-            printf("En la ronda %d, el mensaje con un bit cambiado en el texto plano tiene %d bits diferentes.\n", i, plaintextDifference);
-            printf("En la ronda %d, el mensaje con un bit cambiado en la clave tiene %d bits diferentes.\n", i, keyDifference);
+            printf("En la ronda %d, el mensaje con un bit cambiado en el texto plano tiene %lf%% bits diferentes.\n", i, percentagePlaintext);
+            printf("En la ronda %d, el mensaje con un bit cambiado en la clave tiene %lf%% bits diferentes.\n", i, percentageKey);
         } else {
-            printf("El mensaje final cifrado con un bit cambiado en el texto plano tiene %d bits diferentes.\n", plaintextDifference);
-            printf("El mensaje final cifrado con un bit cambiado en la clave tiene %d bits diferentes.\n", keyDifference);
+            printf("El mensaje final cifrado con un bit cambiado en el texto plano tiene %lf%% bits diferentes.\n", percentagePlaintext);
+            printf("El mensaje final cifrado con un bit cambiado en la clave tiene %lf%% bits diferentes.\n", percentageKey);
         }
     }
 
