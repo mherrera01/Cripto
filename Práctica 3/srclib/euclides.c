@@ -2,6 +2,21 @@
 #include <stdlib.h>
 #include "../includes/euclides.h"
 
+/*
+Devuelve un número positivo si op1>op2, negativo si op1<op2 y 0 si op1=op2.
+int mpz_cmp_si(const mpz_t op1, signed long int op2)
+
+Devuelve en r el resultado de n mod d. El signo del divisor es ignorado y el resultado no puede ser negativo.
+void mpz_mod(mpz_t r, const mpz_t n, const mpz_t d)
+
+Muestra en pantalla una variable mpz.
+gmp_printf("%Zd", mpz_t)
+
+Devuelve el valor de la variable mpz en un signed long int. Para comprobar si el valor entra en esos bytes
+se usa la función mpz_fits_slong_p.
+signed long int mpz_get_si(const mpz_t op)
+*/
+
 mpz_t *calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
     // Control de errores
     if (r == NULL || a == NULL || b == NULL) return NULL;
