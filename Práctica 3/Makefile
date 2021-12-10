@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs potencia
+all: clean createDirs potencia primo
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -19,13 +19,26 @@ potencia: $(OBJDIR)/potencia.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Potencia compilation completed
 
+primo: $(OBJDIR)/primo.o
+	@echo Compiling primo...
+	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@echo Primo compilation completed
+
 $(OBJDIR)/potencia.o: src/potencia.c
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/primo.o: src/primo.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	@rm -rf $(OBJDIR) potencia
+	@rm -rf $(OBJDIR) potencia primo
 	@echo Project cleaned
 
 # Valgrind rules
 runv_potencia:
 	@echo Debugging potencia with valgrind...
 	@valgrind --leak-check=full ./potencia 2 3 18
+
+runv_primo:
+	@echo Debugging primo with valgrind...
+	@valgrind --leak-check=full ./primo -b 16 -p 90

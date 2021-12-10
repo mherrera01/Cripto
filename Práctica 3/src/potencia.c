@@ -122,7 +122,7 @@ void print_help() {
 }
 
 // Libera la memoria inicializada de las variables mpz
-void free_mpz_vars (mpz_t *result, mpz_t *resultGMP, mpz_t *base, mpz_t *exponent, mpz_t *module) {
+void free_mpz_vars(mpz_t *result, mpz_t *resultGMP, mpz_t *base, mpz_t *exponent, mpz_t *module) {
     if (result != NULL) mpz_clear(*result);
     if (resultGMP != NULL) mpz_clear(*resultGMP);
     if (base != NULL) mpz_clear(*base);
@@ -130,7 +130,7 @@ void free_mpz_vars (mpz_t *result, mpz_t *resultGMP, mpz_t *base, mpz_t *exponen
     if (module != NULL) mpz_clear(*module);
 }
 
-int main (int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     double time = 0.0, timeGMP = 0.0;
     mpz_t result, resultGMP, base, exponent, module;
 
