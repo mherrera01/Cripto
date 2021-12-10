@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "../includes/euclides.h"
+#include <gmp.h>
 
 /*
-#define _POSIX_C_SOURCE 200809L // Necesario para usar la función clock_gettime si se compila en ANSI
+#define _POSIX_C_SOURCE 200809L // Necesario para usar la función clock_gettime si se compila con ANSI
 */
 
-#define NS_PER_SEC 1000000000
+#define NS_PER_SEC 1000000000 // Nanosegundos en 1 segundo
 
 double get_execution_time(struct timespec start, struct timespec end) {
     double seconds, nanoseconds;
@@ -17,7 +17,7 @@ double get_execution_time(struct timespec start, struct timespec end) {
     seconds = end.tv_sec - start.tv_sec;
     nanoseconds = end.tv_nsec - start.tv_nsec;
 
-    // Ajustamos los nanosegundos con los segundos
+    // Ajustamos los nanosegundos para que sea positivo
     if (start.tv_nsec > end.tv_nsec) {
 	    --seconds;
 	    nanoseconds += NS_PER_SEC;
@@ -27,31 +27,30 @@ double get_execution_time(struct timespec start, struct timespec end) {
 }
 
 void get_modular_power(mpz_t *result, mpz_t *base, mpz_t *exponent, mpz_t *module) {
-    mpz_t x, l;
+    size_t l;
+    long i;
 
-    // Inicializamos las variables
-    mpz_init(x);
-    mpz_init(l);
+    // Control de errores
+    if (result == NULL || base == NULL || exponent == NULL || module == NULL) return;
 
-    // size_t mpz_sizeinbase (const mpz_t op, int base)
-    // int mpz_tstbit (const mpz_t op, mp_bitcnt_t bit_index)
+    // Con base 2 devuelve la localización del bit 1 más significativo del exponente
+    l = mpz_sizeinbase(*exponent, 2);
 
-    // Asignamos los valores iniciales
-    mpz_set_str(x, "1", 10);
+    // Asignamos el valor inicial de x
+    mpz_set_str(*result, "1", 10);
 
-    // TODO
-    /*
-    x = 1;
-    for i = l-1 to 0 {
-        x = x^2 mod n;
-        if (li == 1) x = x*b mod n;
+    for (i = l-1; i>=0; i--) {
+        // x = x^2 mod n
+        mpz_mul(*result, *result, *result);
+        mpz_mod(*result, *result, *module);
+
+        // Comprobamos si el bit en la posición i del exponente es 1
+        if (mpz_tstbit(*exponent, i)) {
+            // x = x*b mod n
+            mpz_mul(*result, *result, *base);
+            mpz_mod(*result, *result, *module);
+        }
     }
-    return x;
-    */
-
-    // Liberamos las variables
-    mpz_clear(x);
-    mpz_clear(l);
 }
 
 /* Devuelve el tiempo de ejecución de nuestra función de potenciación y asigna el resultado en
@@ -69,7 +68,7 @@ double get_time_modular_power(mpz_t *result, mpz_t *base, mpz_t *exponent, mpz_t
         return -1.0;
     }
 
-    // TODO
+    // Calculamos (base elevada a exponent) mod module con nuestra función de potenciación
     get_modular_power(result, base, exponent, module);
 
     // Terminamos de medir la velocidad de nuestra función de potenciación
@@ -117,7 +116,7 @@ double get_time_powm_GMP(mpz_t *resultGMP, mpz_t *base, mpz_t *exponent, mpz_t *
 void print_help() {
     printf("--------------------------\n");
     printf("./potencia base exponente módulo\n");
-    printf("Devuelve por la salida estándar el resultado de:\n");
+    printf("Devuelve por la salida estándar el resultado y tiempo de ejecución de:\n");
     printf("(base elevada a exponente) mod módulo\n");
     printf("---------------------------\n");
 }

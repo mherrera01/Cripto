@@ -14,17 +14,13 @@ all: clean createDirs potencia
 createDirs:
 	@mkdir -p $(OBJDIR)
 
-potencia: $(OBJDIR)/potencia.o $(OBJDIR)/euclides.o
+potencia: $(OBJDIR)/potencia.o
 	@echo Compiling potencia...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Potencia compilation completed
 
-$(OBJDIR)/potencia.o: src/potencia.c includes/euclides.h
+$(OBJDIR)/potencia.o: src/potencia.c
 	@$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
-	@$(CC) $(CFLAGS) -c $< -o $@
-
 clean:
 	@rm -rf $(OBJDIR) potencia
 	@echo Project cleaned
