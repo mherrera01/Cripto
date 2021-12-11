@@ -1,7 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <gmp.h>
+#include "../includes/miller-rabin.h"
+#include "../includes/firstPrimes.h"
+
+double generate_random_prime(mpz_t *prime, int bits) {
+    // Control de errores
+    if (prime == NULL || bits <= 0) return -1.0;
+
+    // Generamos un número positivo aleatorio entre 0 y 2^(n-1)
+
+    // Ponemos a 1 el bit más significativo para asegurar el correcto tamaño de bits
+
+    // Ponemos a 1 el bit menos significativo para asegurar que es impar
+
+    // Dividir el número aleatorio generado por los primos menores que 2000 para descartar compuestos
+
+    // Aplicamos el test de primalidad con el algoritmo de miller-rabin
+
+    // Comprobamos si el número ha pasado el test
+    return 0.0;
+}
 
 // Imprime en pantalla el uso de los comandos del programa
 void print_help() {
@@ -90,6 +111,11 @@ int main(int argc, char *argv[]) {
             return -1;
         }
     }
+
+    // Utilizamos srand para tener números aleatorios en cada ejecución del programa
+    srand(time(NULL));
+
+    generate_random_prime(&prime, bits);
 
     // Cerramos el archivo si no es stdout
     close_file(output);

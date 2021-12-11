@@ -19,7 +19,7 @@ potencia: $(OBJDIR)/potencia.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Potencia compilation completed
 
-primo: $(OBJDIR)/primo.o
+primo: $(OBJDIR)/primo.o $(OBJDIR)/miller-rabin.o
 	@echo Compiling primo...
 	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
 	@echo Primo compilation completed
@@ -27,7 +27,10 @@ primo: $(OBJDIR)/primo.o
 $(OBJDIR)/potencia.o: src/potencia.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/primo.o: src/primo.c
+$(OBJDIR)/primo.o: src/primo.c includes/miller-rabin.h includes/firstPrimes.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/miller-rabin.o: srclib/miller-rabin.c includes/miller-rabin.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
