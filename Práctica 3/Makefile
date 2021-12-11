@@ -21,7 +21,7 @@ potencia: $(OBJDIR)/potencia.o
 
 primo: $(OBJDIR)/primo.o $(OBJDIR)/miller-rabin.o
 	@echo Compiling primo...
-	@$(CC) $(CFLAGS) -o$@ $^ -lgmp -L.
+	@$(CC) $(CFLAGS) -o$@ $^ -lm -lgmp -L.
 	@echo Primo compilation completed
 
 $(OBJDIR)/potencia.o: src/potencia.c
