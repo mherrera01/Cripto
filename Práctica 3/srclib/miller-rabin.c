@@ -32,11 +32,11 @@ double get_error_estimate_millerRabin(int bits, int ntimes) {
 }
 
 int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits) {
-    int i;
+    int i, solutionFound = 0;
     mpz_t result, base, power, checkm;
 
     // Control de errores
-    if (m == NULL || k == NULL || n == NULL || bits <= 0) return -1;
+    if (m == NULL || k == NULL || n == NULL || bits <= 1) return -1;
 
     // Inicializamos las variables
     mpz_init(result);
@@ -50,7 +50,7 @@ int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits) {
     mpz_set_ui(base, 2);
 
     // Probamos diferentes valores hasta resolver la operación
-    for (i = 1; i < bits-1; i++) {
+    for (i = 1; i < bits; i++) {
         // Calculamos m a partir del k asignado
         mpz_pow_ui(power, base, i);
         mpz_fdiv_q(*m, result, power); // m = (n-1) / 2^k
@@ -60,6 +60,7 @@ int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits) {
         if (mpz_cmp_si(checkm, 0) != 0) {
             // k y m calculados
             mpz_set_ui(*k, i);
+            solutionFound = 1;
             break;
         }
     }
@@ -70,12 +71,71 @@ int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits) {
     mpz_clear(power);
     mpz_clear(checkm);
 
+    if (!solutionFound) return -1;
     return 0;
 }
 
-int check_prime_millerRabin(mpz_t *m, mpz_t *k, mpz_t *n) {
+int check_prime_millerRabin(mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstate_t randState) {
+    int i;
+    mpz_t a, top, x;
+
     // Control de errores
     if (m == NULL || k == NULL || n == NULL) return -1;
 
-    return 1;
+    // Miller-rabin se ejecuta en números mayores que 3
+    if (mpz_cmp_si(*n, 3) <= 0) return 1;
+
+    // Inicializamos las variables
+    mpz_init(a);
+    mpz_init(top);
+    mpz_init(x);
+
+    // Asignamos los valores inciales
+    mpz_set(top, *n);
+    mpz_sub_ui(top, top, 1);
+
+    // Generamos un número entero aleatorio entre 1 y n-1
+    mpz_urandomm(a, randState, top);
+    mpz_add_ui(a, a, 1);
+
+    // Hacemos la operación x = a^m mod n
+    mpz_powm(x, a, *m, *n);
+
+    // Comprobamos si es un posible primo (x == 1 | x == n-1)
+    if (mpz_cmp_si(x, 1) == 0 || mpz_cmp(x, top) == 0) {
+        mpz_clear(a);
+        mpz_clear(top);
+        mpz_clear(x);
+        return 1; // Posible primo
+    }
+
+    // De 1 a k-1
+    for (i = 1; i < mpz_get_ui(*k); i++) {
+        // x = x^2 mod n
+        mpz_mul(x, x, x);
+        mpz_mod(x, x, *n);
+
+        // x == 1
+        if (mpz_cmp_si(x, 1) == 0) {
+            mpz_clear(a);
+            mpz_clear(top);
+            mpz_clear(x);
+            return 0; // No se cumple la propiedad; número compuesto
+
+        // x == n-1
+        } else if (mpz_cmp(x, top) == 0) {
+            mpz_clear(a);
+            mpz_clear(top);
+            mpz_clear(x);
+            return 1; // Posible primo
+        }
+    }
+
+    // Liberamos memoria
+    mpz_clear(a);
+    mpz_clear(top);
+    mpz_clear(x);
+
+    // Número compuesto
+    return 0;
 }

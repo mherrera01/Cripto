@@ -8,6 +8,64 @@
 #include "../includes/miller-rabin.h"
 #include "../includes/firstPrimes.h"
 
+/*
+#define _POSIX_C_SOURCE 200809L // Necesario para usar la función clock_gettime si se compila con ANSI
+*/
+
+#define NS_PER_SEC 1000000000 // Nanosegundos en 1 segundo
+
+// Información de la ejecución del programa a mostrar al usuario
+typedef struct ProgramInfo {
+    int testResult; // Resultado de nuestro test. 1 si es posible primo ó 0 si es compuesto
+    int testGMPResult; // Resultado de GMP. 2 si es primo, 1 si es posible primo ó 0 si es compuesto
+    int nTimes; // Número de veces que pasa el test para generar el número de n bits
+} ProgramInfo;
+
+ProgramInfo *initialize_ProgramInfo() {
+    ProgramInfo *info = NULL;
+
+    // Reservamos memoria para la estructura
+    info = (ProgramInfo *) malloc (sizeof(ProgramInfo));
+    if (info == NULL) return NULL;
+
+    // Asignamos los valores iniciales
+    info->testResult = -1;
+    info->testGMPResult = -1;
+    info->nTimes = -1;
+
+    return info;
+}
+
+char *get_testResult_string(int testResult) {
+    if (testResult == -1) {
+        return "None";
+    } else if (testResult == 0) {
+        return "No primo";
+    } else if (testResult == 1) {
+        return "Posible primo";
+    } else if (testResult == 2) {
+        return "Primo";
+    }
+
+    return "Error";
+}
+
+double get_execution_time(struct timespec start, struct timespec end) {
+    double seconds, nanoseconds;
+
+    // Calculamos la diferencia de los tiempos en segundos y nanosegundos
+    seconds = end.tv_sec - start.tv_sec;
+    nanoseconds = end.tv_nsec - start.tv_nsec;
+
+    // Ajustamos los nanosegundos para que sea positivo
+    if (start.tv_nsec > end.tv_nsec) {
+	    --seconds;
+	    nanoseconds += NS_PER_SEC;
+    }
+
+    return seconds + (nanoseconds / NS_PER_SEC);
+}
+
 /**
  * Devuelve 1 si el número pasado como argumento es divisible entre alguno
  * de los primos del 1 al 2000 y devuelve 0 en caso contrario.
@@ -51,17 +109,25 @@ int check_first_primes_division(mpz_t *randN) {
     return 0;
 }
 
-double generate_random_prime(mpz_t *prime, int bits, double sec) {
+ProgramInfo *generate_random_prime(mpz_t *prime, int bits, double sec) {
     int i, primesDiv, isCompound, testResult, testNtimes, generateRand = 1;
     gmp_randstate_t randState;
     mpz_t m, k;
     unsigned long seed;
+    ProgramInfo *resultInfo = NULL;
 
     // Control de errores
-    if (prime == NULL || bits <= 0 || sec < 0 || sec > 1) return -1.0;
+    if (prime == NULL || bits <= 1 || sec < 0 || sec > 1) return NULL;
+
+    // Reservamos memoria para la información de la generación de primos
+    resultInfo = initialize_ProgramInfo();
+    if (resultInfo == NULL) return NULL;
 
     // Generamos una semilla aleatoria en cada ejecución del programa
-    if (getrandom(&seed, sizeof(unsigned long), GRND_NONBLOCK) == -1) return -1.0;
+    if (getrandom(&seed, sizeof(unsigned long), GRND_NONBLOCK) == -1) {
+        free(resultInfo);
+        return NULL;
+    }
 
     // Inicializamos memoria para la semilla generada
     gmp_randinit_mt(randState);
@@ -74,6 +140,7 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
     // Calculamos cuántas veces es necesario ejecutar miller-rabin
     testNtimes = get_ntimes_estimate_millerRabin(bits, sec);
     if (testNtimes < 0) testNtimes = 0;
+    resultInfo->nTimes = testNtimes;
 
     while(generateRand) {
         // Generamos un número positivo aleatorio entre 0 y 2^(n-1)
@@ -95,7 +162,8 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
                 gmp_randclear(randState);
                 mpz_clear(m);
                 mpz_clear(k);
-                return -1.0;
+                free(resultInfo);
+                return NULL;
             } else if (primesDiv) {
                 // Número compuesto; generamos otro aleatorio
                 generateRand = 1;
@@ -112,26 +180,34 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
                 gmp_randclear(randState);
                 mpz_clear(m);
                 mpz_clear(k);
-                return -1.0;
+                free(resultInfo);
+                return NULL;
             }
 
             // Aplicamos el test de primalidad con el algoritmo de miller-rabin las veces necesarias
             isCompound = 0;
             for (i = 0; i < testNtimes; i++) {
-                testResult = check_prime_millerRabin(&m, &k, prime);
+                testResult = check_prime_millerRabin(&m, &k, prime, randState);
                 if (testResult == -1) {
                     printf("Error: No se ha podido aplicar el test de primalidad al número aleatorio generado con el algoritmo de miller-rabin.\n");
 
                     gmp_randclear(randState);
                     mpz_clear(m);
                     mpz_clear(k);
-                    return -1.0;
+                    free(resultInfo);
+                    return NULL;
                 } else if (!testResult) {
                     // Número compuesto
                     isCompound = 1;
                     break;
                 }
             }
+
+            // Guardamos el resultado de nuestro test con el algoritmo de miller-rabin
+            resultInfo->testResult = (isCompound) ? 0 : 1;
+
+            // Comprobamos con gmp si el número generado aleatoriamente es un posible primo
+            resultInfo->testGMPResult = mpz_probab_prime_p(*prime, testNtimes);
 
             if (isCompound) {
                 // El número aleatorio generado no pasa los tests
@@ -153,14 +229,12 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
         }
     }
 
-    // https://stackoverflow.com/questions/30942413/c-gmp-generating-random-number
-
     // Liberamos memoria
     gmp_randclear(randState);
     mpz_clear(m);
     mpz_clear(k);
 
-    return 0.0;
+    return resultInfo;
 }
 
 // Imprime en pantalla el uso de los comandos del programa
@@ -185,8 +259,10 @@ void close_file(FILE *output) {
 int main(int argc, char *argv[]) {
     mpz_t prime;
     int i, bits = 0;
-    double sec = 0.0;
+    double sec = 0.0, executionTime = 0.0;
     char *convertToLong;
+    struct timespec start, end;
+    ProgramInfo *generatePrimeResult = NULL;
     FILE *output = stdout;
 
     // Inicializamos la variable con el número primo resultante
@@ -209,7 +285,7 @@ int main(int argc, char *argv[]) {
             bits = (int) strtol(argv[++i], &convertToLong, 10);
 
             // Comprobamos si no se ha convertido ningún caracter o el valor no es válido
-            if (argv[i] == convertToLong || bits <= 0) {
+            if (argv[i] == convertToLong || bits <= 1) {
                 printf("Error: El parámetro -b %s no es válido.\n", argv[i]);
 
                 close_file(output);
@@ -254,14 +330,60 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    generate_random_prime(&prime, bits, sec);
-    gmp_printf("%Zd\n", prime);
+    printf("Generando el número primo...\n");
+
+    // Empezamos a medir la velocidad de la generación de números primos
+    if (clock_gettime(CLOCK_REALTIME, &start) == -1) {
+        printf("Error: No se ha podido empezar a medir la velocidad de la generación de números primos.\n");
+
+        close_file(output);
+        mpz_clear(prime);
+        return -1;
+    }
+
+    // Generamos el número primo aleatorio de n bits con una cierta probabilidad de equivocación
+    generatePrimeResult = generate_random_prime(&prime, bits, sec);
+    if (generatePrimeResult == NULL) {
+        printf("Error: No se ha podido generar el número primo aleatorio de %d bits con una equivocación de %lf.\n", bits, sec);
+
+        close_file(output);
+        mpz_clear(prime);
+        return -1;
+    }
+
+    // Terminamos de medir la velocidad de la generación de números primos
+    if (clock_gettime(CLOCK_REALTIME, &end) == -1) {
+        printf("Error: No se ha podido terminar de medir la velocidad de la generación de números primos.\n");
+
+        close_file(output);
+        mpz_clear(prime);
+        free(generatePrimeResult);
+        return -1;
+    }
+
+    // Tiempo que tarda el programa en generar el número
+    executionTime = get_execution_time(start, end);
+
+    printf("OK: Número primo generado.\n");
+    if (output == stdout) printf("\n");
+
+    // Mostramos en el archivo de salida correspondiente los resultados de la ejecución del programa
+    gmp_fprintf(output, "%Zd\n", prime);
+    fprintf(output, "--------------------------\n");
+    fprintf(output, "Resultado de nuestro test: %s\n", get_testResult_string(generatePrimeResult->testResult));
+    fprintf(output, "Resultado de GMP: %s\n", get_testResult_string(generatePrimeResult->testGMPResult));
+    fprintf(output, "Probabilidad de equivocación: %.15lf\n", sec);
+    fprintf(output, "Número de veces que el número candidato ha pasado el test: %d\n", generatePrimeResult->nTimes);
+    fprintf(output, "Tiempo de ejecución: %lfs\n", executionTime);
 
     // Cerramos el archivo si no es stdout
     close_file(output);
 
     // Liberamos la variable con el número primo resultante
     mpz_clear(prime);
+
+    // Liberamos memoria
+    free(generatePrimeResult);
 
     return 0;
 }

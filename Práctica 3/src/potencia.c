@@ -23,7 +23,7 @@ double get_execution_time(struct timespec start, struct timespec end) {
 	    nanoseconds += NS_PER_SEC;
     }
 
-    return (seconds + nanoseconds) / NS_PER_SEC;
+    return seconds + (nanoseconds / NS_PER_SEC);
 }
 
 void get_modular_power(mpz_t *result, mpz_t *base, mpz_t *exponent, mpz_t *module) {
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
 
     // Mostramos el resultado de nuestra función de potenciación por la salida estándar
     printf("--- Función propia de potenciación ---\n");
-    printf("Tiempo de ejecución: %lf\n", time);
+    printf("Tiempo de ejecución: %lfs\n", time);
     gmp_printf("Resultado: %Zd\n", result);
 
     // Calculamos los datos de la función mpz_powm de GMP
@@ -202,7 +202,7 @@ int main(int argc, char *argv[]) {
 
     // Mostramos el resultado de la función mpz_powm por la salida estándar
     printf("--- Función mpz_powm de GMP ---\n");
-    printf("Tiempo de ejecución: %lf\n", timeGMP);
+    printf("Tiempo de ejecución: %lfs\n", timeGMP);
     gmp_printf("Resultado: %Zd\n", resultGMP);
 
     // Liberamos variables
