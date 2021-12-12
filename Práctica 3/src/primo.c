@@ -36,7 +36,11 @@ int check_first_primes_division(mpz_t *randN) {
             mpz_fdiv_r(remainder, *randN, prime);
 
             // Si el resto es 0, el número aleatorio es compuesto
-            if (mpz_cmp_si(remainder, 0) == 0) return 1;
+            if (mpz_cmp_si(remainder, 0) == 0) {
+                mpz_clear(prime);
+                mpz_clear(remainder);
+                return 1;
+            }
         } else break;
     }
 
@@ -48,7 +52,7 @@ int check_first_primes_division(mpz_t *randN) {
 }
 
 double generate_random_prime(mpz_t *prime, int bits, double sec) {
-    int primesDiv = 0, testResult = 0, generateRand = 1;
+    int i, primesDiv, isCompound, testResult, testNtimes, generateRand = 1;
     gmp_randstate_t randState;
     mpz_t m, k;
     unsigned long seed;
@@ -67,9 +71,12 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
     mpz_init(m);
     mpz_init(k);
 
+    // Calculamos cuántas veces es necesario ejecutar miller-rabin
+    testNtimes = get_ntimes_estimate_millerRabin(bits, sec);
+    if (testNtimes < 0) testNtimes = 0;
+
     while(generateRand) {
         // Generamos un número positivo aleatorio entre 0 y 2^(n-1)
-        // TODO: mpz_rrandomb. Entre 2^(n-1) y 2^n??
         mpz_urandomb(*prime, randState, bits);
 
         // Ponemos a 1 el bit más significativo para asegurar el correcto tamaño de bits
@@ -95,6 +102,9 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
                 break;
             }
 
+            // Comprobamos si no hace falta hacer miller-rabin
+            if (testNtimes == 0) break;
+
             // Calculamos las variables m y k necesarias para el algoritmo de miller-rabin
             if (calculate_mk(&m, &k, prime, bits) == -1) {
                 printf("Error: No se han podido calcular las variables m y k necesarias para el algoritmo de miller-rabin.\n");
@@ -105,19 +115,25 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
                 return -1.0;
             }
 
-            // Aplicamos el test de primalidad con el algoritmo de miller-rabin
-            testResult = check_prime_millerRabin(&m, &k, prime);
-            if (testResult == -1) {
-                printf("Error: No se ha podido aplicar el test de primalidad al número aleatorio generado con el algoritmo de miller-rabin.\n");
+            // Aplicamos el test de primalidad con el algoritmo de miller-rabin las veces necesarias
+            isCompound = 0;
+            for (i = 0; i < testNtimes; i++) {
+                testResult = check_prime_millerRabin(&m, &k, prime);
+                if (testResult == -1) {
+                    printf("Error: No se ha podido aplicar el test de primalidad al número aleatorio generado con el algoritmo de miller-rabin.\n");
 
-                gmp_randclear(randState);
-                mpz_clear(m);
-                mpz_clear(k);
-                return -1.0;
-            } else if (testResult) {
-                // Posible primo
-                break;
-            } else {
+                    gmp_randclear(randState);
+                    mpz_clear(m);
+                    mpz_clear(k);
+                    return -1.0;
+                } else if (!testResult) {
+                    // Número compuesto
+                    isCompound = 1;
+                    break;
+                }
+            }
+
+            if (isCompound) {
                 // El número aleatorio generado no pasa los tests
                 mpz_add_ui(*prime, *prime, 2);
 
@@ -130,6 +146,9 @@ double generate_random_prime(mpz_t *prime, int bits, double sec) {
                     // Si n+2 no ocupa todos los bits seguimos probando
                     continue;
                 }
+            } else {
+                // Posible primo
+                break;
             }
         }
     }
@@ -150,7 +169,7 @@ void print_help() {
     printf("./primo {-b bits} {-p sec} [-o fileout]\n");
     printf("Siendo los parámetros:\n");
     printf("-b número máximo de bits significativos que tendrá el número generado\n");
-    printf("-p probabilidad de equivocación del algoritmo que especifica la seguridad que debería tener el primo generado en el test. Ej: 0,05\n");
+    printf("-p probabilidad de equivocación del algoritmo que especifica la seguridad que debería tener el primo generado en el test. Ej: 0.05\n");
     printf("-o fichero de salida\n");
     printf("---------------------------\n");
 }
@@ -203,9 +222,10 @@ int main(int argc, char *argv[]) {
             sec = strtod(argv[++i], &convertToLong);
 
             // Comprobamos si no se ha convertido ningún caracter o el valor no es válido
-            if (argv[i] == convertToLong || sec < 0 || sec > 1) {
+            if (argv[i] == convertToLong || strchr(argv[i], ',') != NULL || sec < 0 || sec > 1) {
                 printf("Error: El parámetro -p %s no es válido.\n", argv[i]);
-                printf("La probabilidad de equivocación del primo generado debe estar en el intervalo [0,1].\n");
+                printf("La probabilidad de equivocación del primo generado debe estar en el intervalo [0,1] ");
+                printf("y tener el punto como separador decimal.\n");
 
                 close_file(output);
                 mpz_clear(prime);

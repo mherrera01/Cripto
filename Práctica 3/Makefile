@@ -44,4 +44,4 @@ runv_potencia:
 
 runv_primo:
 	@echo Debugging primo with valgrind...
-	@valgrind --leak-check=full ./primo -b 16 -p 90
+	@valgrind --leak-check=full ./primo -b 16 -p 0.08

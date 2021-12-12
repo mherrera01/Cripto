@@ -3,6 +3,16 @@
 
 #include <gmp.h>
 
+// Probabilidad de equivocación mínima en el algoritmo de miller-rabin
+#define MIN_ERROR_ESTIMATE 0.000000000000001
+
+/**
+ * Devuelve el número de veces que son necesarias ejecutar miller-rabin para
+ * que un número de N bits tenga una probabilidad de equivocación específica.
+ * El resultado siempre es redondeado hacia arriba en busca de más seguridad.
+ */
+int get_ntimes_estimate_millerRabin(int bits, double error);
+
 /**
  * Devuelve la probabilidad de que un número de N bits sea compuesto
  * después de superar n veces el test de miller-rabin.
