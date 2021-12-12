@@ -9,7 +9,7 @@ OBJDIR = obj
 .PHONY: all clean createDirs
 
 # Rules declaration
-all: clean createDirs potencia primo
+all: clean createDirs potencia primo vegas
 
 createDirs:
 	@mkdir -p $(OBJDIR)
@@ -24,17 +24,25 @@ primo: $(OBJDIR)/primo.o $(OBJDIR)/miller-rabin.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lm -lgmp -L.
 	@echo Primo compilation completed
 
+vegas: $(OBJDIR)/vegas.o $(OBJDIR)/miller-rabin.o
+	@echo Compiling vegas...
+	@$(CC) $(CFLAGS) -o$@ $^ -lm -lgmp -L.
+	@echo Vegas compilation completed
+
 $(OBJDIR)/potencia.o: src/potencia.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/primo.o: src/primo.c includes/miller-rabin.h includes/firstPrimes.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(OBJDIR)/vegas.o: src/vegas.c includes/miller-rabin.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 $(OBJDIR)/miller-rabin.o: srclib/miller-rabin.c includes/miller-rabin.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf $(OBJDIR) potencia primo
+	@rm -rf $(OBJDIR) potencia primo vegas
 	@echo Project cleaned
 
 # Valgrind rules
@@ -45,3 +53,7 @@ runv_potencia:
 runv_primo:
 	@echo Debugging primo with valgrind...
 	@valgrind --leak-check=full ./primo -b 16 -p 0.08
+
+runv_vegas:
+	@echo Debugging vegas with valgrind...
+	@valgrind --leak-check=full ./vegas -n 77 -e 7 -d 43
