@@ -3,7 +3,7 @@
 #include "../includes/euclides.h"
 
 void calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
-    mpz_t dividend, divisor;
+    mpz_t dividend, divisor, remainder;
 
     // Control de errores
     if (r == NULL || a == NULL || b == NULL) return;
@@ -11,20 +11,36 @@ void calculate_mcd(mpz_t *r, mpz_t *a, mpz_t *b) {
     // Inicializamos las variables
     mpz_init(dividend);
     mpz_init(divisor);
+    mpz_init(remainder);
 
-    // Asignamos los valores iniciales
-    mpz_set(dividend, *a);
-    mpz_set(divisor, *b);
-
-    // Obtenemos el cociente de la división de a y b
-    // mpz_fdiv_q()
+    // Asignamos los valores iniciales. r0 = dividend y r1 = divisor
+    if (mpz_cmp(*a, *b) >= 0) {
+        // Si a >= b, r0 = a y r1 = b
+        mpz_set(dividend, *a);
+        mpz_set(divisor, *b);
+    } else {
+        // Si a < b, r0 = b y r1 = a
+        mpz_set(dividend, *b);
+        mpz_set(divisor, *a);
+    }
 
     // Obtenemos el módulo de la división de a y b
-    mpz_mod(*r, dividend, divisor);
+    mpz_mod(remainder, dividend, divisor);
+
+    // Buscamos que el resto sea 0
+    while (mpz_cmp_si(remainder, 0) != 0) {
+        mpz_set(dividend, divisor);
+        mpz_set(divisor, remainder);
+        mpz_mod(remainder, dividend, divisor);
+    }
+
+    // Asignamos el resultado del algoritmo de euclides
+    mpz_set(*r, divisor);
 
     // Liberamos las variables
     mpz_clear(dividend);
     mpz_clear(divisor);
+    mpz_clear(remainder);
 
     // Función recursiva
     return;

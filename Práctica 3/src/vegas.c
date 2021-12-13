@@ -36,10 +36,11 @@ int perform_vegas_algorithm(mpz_t *r, mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstat
     mpz_urandomm(a, randState, top);
     mpz_add_ui(a, a, 1);
 
-    // TODO: Paso 3
+    // Comprobamos si mcd(a, n) > 1
     calculate_mcd(r, &a, n);
-    gmp_printf("%Zd\n", r);
-    gmp_printf("%Zd\n", r);
+    if (mpz_cmp_si(*r, 1) > 0) {
+        return 1; // Respuesta de p o q = mcd(a, n)
+    }
 
     // Hacemos la operación x = a^m mod n
     mpz_powm(x, a, *m, *n);
@@ -64,11 +65,15 @@ int perform_vegas_algorithm(mpz_t *r, mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstat
 
         // x == 1
         if (mpz_cmp_si(x, 1) == 0) {
+            // Respuesta de p o q = mcd(y+1, n)
+            mpz_add_ui(y, y, 1);
+            calculate_mcd(r, &y, n);
+
             mpz_clear(a);
             mpz_clear(top);
             mpz_clear(x);
             mpz_clear(y);
-            return 1; // Respuesta de p o q = mcd(y+1, n)
+            return 1;
 
         // x == -1
         } else if (mpz_cmp_si(x, -1) == 0) {
@@ -80,13 +85,16 @@ int perform_vegas_algorithm(mpz_t *r, mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstat
         }
     }
 
+    // Respuesta de p o q = mcd(x+1, n)
+    mpz_add_ui(x, x, 1);
+    calculate_mcd(r, &x, n);
+
     // Liberamos memoria
     mpz_clear(a);
     mpz_clear(top);
     mpz_clear(x);
     mpz_clear(y);
 
-    // Respuesta de p o q = mcd(x+1, n)
     return 1;
 }
 
@@ -229,12 +237,11 @@ int main(int argc, char *argv[]) {
             free_mpz_vars(&n, &e, &d, &eByd, &m, &k, &p, &q);
             return -1;
         }
-        break; // TODO: Remove
     }
     printf("OK: Módulo del RSA factorizado mediante el algoritmo de las vegas.\n");
 
     // Una vez obtenido p, hallamos q
-    // mpz_fdiv_q(q, n, p);
+    mpz_fdiv_q(q, n, p);
 
     // Mostramos en pantalla el p y q calculados del algoritmo de las vegas
     gmp_printf("Clave pública: (%Zd, %Zd)\n", e, n);
