@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
             bits = (int) strtol(argv[++i], &convertToLong, 10);
 
             // Comprobamos si no se ha convertido ningún caracter o el valor no es válido
-            if (argv[i] == convertToLong || bits <= 1) {
+            if (argv[i] == convertToLong || bits <= 3) {
                 printf("Error: El parámetro -b %s no es válido.\n", argv[i]);
 
                 gmp_randclear(randState);
@@ -257,9 +257,6 @@ int main(int argc, char *argv[]) {
 
     // Multiplicamos ambos exponentes e y d para el posterior cálculo de m y k
     mpz_mul(eByd, e, d);
-
-    // Con base 2 devuelve la localización del bit 1 más significativo del valor e*d
-    bits = mpz_sizeinbase(eByd, 2);
 
     // Calculamos las variables m y k necesarias para el algoritmo de las vegas. (e*d)-1 = 2^k * m
     if (calculate_mk(&m, &k, &eByd, bits) == -1) {
