@@ -24,7 +24,7 @@ primo: $(OBJDIR)/primo.o $(OBJDIR)/miller-rabin.o
 	@$(CC) $(CFLAGS) -o$@ $^ -lm -lgmp -L.
 	@echo Primo compilation completed
 
-vegas: $(OBJDIR)/vegas.o $(OBJDIR)/miller-rabin.o
+vegas: $(OBJDIR)/vegas.o $(OBJDIR)/miller-rabin.o $(OBJDIR)/euclides.o
 	@echo Compiling vegas...
 	@$(CC) $(CFLAGS) -o$@ $^ -lm -lgmp -L.
 	@echo Vegas compilation completed
@@ -35,10 +35,13 @@ $(OBJDIR)/potencia.o: src/potencia.c
 $(OBJDIR)/primo.o: src/primo.c includes/miller-rabin.h includes/firstPrimes.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/vegas.o: src/vegas.c includes/miller-rabin.h
+$(OBJDIR)/vegas.o: src/vegas.c includes/miller-rabin.h includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/miller-rabin.o: srclib/miller-rabin.c includes/miller-rabin.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/euclides.o: srclib/euclides.c includes/euclides.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

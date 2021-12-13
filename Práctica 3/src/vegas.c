@@ -3,7 +3,9 @@
 #include <string.h>
 #include <gmp.h>
 #include <sys/random.h>
+
 #include "../includes/miller-rabin.h"
+#include "../includes/euclides.h"
 
 /**
  * Asigna en r uno de los dos números primos p y q que multiplicados obtienen el módulo
@@ -35,6 +37,9 @@ int perform_vegas_algorithm(mpz_t *r, mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstat
     mpz_add_ui(a, a, 1);
 
     // TODO: Paso 3
+    calculate_mcd(r, &a, n);
+    gmp_printf("%Zd\n", r);
+    gmp_printf("%Zd\n", r);
 
     // Hacemos la operación x = a^m mod n
     mpz_powm(x, a, *m, *n);
@@ -224,6 +229,7 @@ int main(int argc, char *argv[]) {
             free_mpz_vars(&n, &e, &d, &eByd, &m, &k, &p, &q);
             return -1;
         }
+        break; // TODO: Remove
     }
     printf("OK: Módulo del RSA factorizado mediante el algoritmo de las vegas.\n");
 
