@@ -20,15 +20,6 @@ int get_ntimes_estimate_millerRabin(int bits, double error);
 double get_error_estimate_millerRabin(int bits, int ntimes);
 
 /**
- * Asigna en las variables m y n el resultado de la operación n-1 = 2^k * m.
- * Los valores en el intervalo [1, bits-1] serán probados en k hasta que se
- * encuentre la solución, siendo m impar.
- * 
- * Devuelve 0 si se ha encontrado la solución o -1 en caso de error.
- */
-int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits);
-
-/**
  * Comprueba si el número n pasado como argumento es un posible primo mediante el
  * algoritmo de miller-rabin a partir de m y k. Recibe un estado aleatorio para generar
  * una base diferente en cada ejecución.

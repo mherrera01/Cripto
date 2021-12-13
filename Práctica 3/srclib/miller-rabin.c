@@ -31,50 +31,6 @@ double get_error_estimate_millerRabin(int bits, int ntimes) {
     return 1.0 / denominator;
 }
 
-int calculate_mk(mpz_t *m, mpz_t *k, mpz_t *n, int bits) {
-    int i, solutionFound = 0;
-    mpz_t result, base, power, checkm;
-
-    // Control de errores
-    if (m == NULL || k == NULL || n == NULL || bits <= 1) return -1;
-
-    // Inicializamos las variables
-    mpz_init(result);
-    mpz_init(base);
-    mpz_init(power);
-    mpz_init(checkm);
-
-    // Asignamos los valores iniciales
-    mpz_set(result, *n);
-    mpz_sub_ui(result, result, 1); // n-1
-    mpz_set_ui(base, 2);
-
-    // Probamos diferentes valores hasta resolver la operación
-    for (i = 1; i < bits; i++) {
-        // Calculamos m a partir del k asignado
-        mpz_pow_ui(power, base, i);
-        mpz_fdiv_q(*m, result, power); // m = (n-1) / 2^k
-
-        // Comprobamos si m es impar
-        mpz_fdiv_r_ui(checkm, *m, 2);
-        if (mpz_cmp_si(checkm, 0) != 0) {
-            // k y m calculados
-            mpz_set_ui(*k, i);
-            solutionFound = 1;
-            break;
-        }
-    }
-
-    // Liberamos la memoria
-    mpz_clear(result);
-    mpz_clear(base);
-    mpz_clear(power);
-    mpz_clear(checkm);
-
-    if (!solutionFound) return -1;
-    return 0;
-}
-
 int check_prime_millerRabin(mpz_t *m, mpz_t *k, mpz_t *n, gmp_randstate_t randState) {
     int i;
     mpz_t a, top, x;
