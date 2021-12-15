@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
     // ./potencia base exponente módulo
 
     // Primer argumento: Base
-    if (mpz_set_str(base, argv[1], 10) == -1 || mpz_cmp_si(base, 0) <= 0) {
+    if (mpz_set_str(base, argv[1], 10) == -1 || mpz_cmp_si(base, 0) < 0) {
         printf("Error: El valor de la base %s no es válido.\n", argv[1]);
 
         free_mpz_vars(&result, &resultGMP, &base, &exponent, &module);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Segundo argumento: Exponente
-    if (mpz_set_str(exponent, argv[2], 10) == -1 || mpz_cmp_si(exponent, 0) <= 0) {
+    if (mpz_set_str(exponent, argv[2], 10) == -1 || mpz_cmp_si(exponent, 0) < 0) {
         printf("Error: El valor del exponente %s no es válido.\n", argv[2]);
 
         free_mpz_vars(&result, &resultGMP, &base, &exponent, &module);
